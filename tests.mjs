@@ -186,3 +186,39 @@ test('MCP OAuth metadata survives dashboard API routing fallback',async()=>{
  assert.equal(unauthenticated.status,401);
  assert.match(unauthenticated.headers['www-authenticate'],/oauth-protected-resource/);
 });
+
+test('MCP configuration diagnostics require reviewer session and never return secret values',async()=>{
+ const anonymous=await request('mcp_diagnostics',false);
+ assert.equal(anonymous.status,401);
+ const saved={
+  MCP_PUBLIC_ORIGIN:process.env.MCP_PUBLIC_ORIGIN,
+  MCP_OAUTH_SECRET:process.env.MCP_OAUTH_SECRET,
+  N8N_ADMIN_PASSWORD:process.env.N8N_ADMIN_PASSWORD,
+  N8N_BACKUP_KEY:process.env.N8N_BACKUP_KEY
+ };
+ try{
+  process.env.MCP_PUBLIC_ORIGIN='https://lovespain.vercel.app';
+  process.env.MCP_OAUTH_SECRET='a'.repeat(64);
+  process.env.N8N_ADMIN_PASSWORD='too-short';
+  process.env.N8N_BACKUP_KEY=Buffer.alloc(32,7).toString('base64');
+  const bad=await request('mcp_diagnostics');
+  assert.equal(bad.status,200);
+  assert.equal(bad.data.ready,false);
+  assert.equal(bad.data.checks.N8N_ADMIN_PASSWORD,false);
+  assert.equal(bad.data.checks.N8N_BACKUP_KEY,true);
+  assert.equal(JSON.stringify(bad.data).includes('too-short'),false);
+  process.env.N8N_ADMIN_PASSWORD='b'.repeat(64);
+  const good=await request('mcp_diagnostics');
+  assert.equal(good.data.ready,true);
+  assert.equal(Object.values(good.data.checks).every(Boolean),true);
+  process.env.N8N_BACKUP_KEY='invalid';
+  const invalidBackup=await request('mcp_diagnostics');
+  assert.equal(invalidBackup.data.ready,false);
+  assert.equal(invalidBackup.data.checks.N8N_BACKUP_KEY,false);
+ }finally{
+  for(const [key,value] of Object.entries(saved)){
+   if(value===undefined)delete process.env[key];
+   else process.env[key]=value;
+  }
+ }
+});

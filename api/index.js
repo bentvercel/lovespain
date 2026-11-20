@@ -1,6 +1,6 @@
 import {createHmac,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
 import {manageN8n} from './n8n-management.js';
-import mcpHandler from './mcp.js';
+import mcpHandler, {mcpConfigurationStatus} from './mcp.js';
 const equal=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.length===b.length&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
 const sign=s=>createHmac('sha256',process.env.SESSION_SECRET).update(s).digest('hex');
 const send=(res,status,body)=>{res.statusCode=status;res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(body));};
@@ -69,6 +69,8 @@ if(action==='verified'&&method==='GET'){
  return send(res,200,{campaignId:row.id,developmentId:row.development_id,contentHash:row.content_hash,revision:row.revision,approvalStatus:approved?'approved':'pending',approvalVerified:approved,publicationAllowed:false,approvalDecision:{status:approved?'approved':'pending',reviewerId:approved?last?.actor:null,approvedAt:approved?last?.at:null,contentHash:row.content_hash},assets:row.assets,nextAction:'WORKFLOW_4_MUST_VERIFY_CURRENT_CONTENT_HASH'});
 }
 const user=session(req);if(!user)return send(res,401,{error:'Sign in required'});
+// Reviewer-only diagnostics: statuses only; never send secrets or values.
+if(action==='mcp_diagnostics'&&method==='GET')return send(res,200,mcpConfigurationStatus());
 if(['n8n_deploy_plan','n8n_deploy_apply'].includes(action))return manageN8n(req,res,action,b,user.csrf);
 if(action==='logout'&&method==='POST'){res.setHeader('Set-Cookie','ls_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(res,200,{ok:true});}
 if(action==='n8n_inspect'&&method==='GET'){
