@@ -11,6 +11,21 @@ Open index.html in your browser, or run `npm start` with Node 22+ and visit http
 5. Sign in with REVIEW_PASSWORD. This version has one reviewer identity: Bent. It uses a signed eight-hour HttpOnly session and a CSRF token for decisions. Separate reviewer accounts and password recovery are not included.
 6. n8n uses Header Auth: Authorization: Bearer YOUR_INGEST_TOKEN. Keep this in n8n credentials.
 
+## n8n Cloud — live read-only operations
+
+The **Automations & tools** section can connect to a real n8n Cloud workspace through Vercel server-side environment variables:
+
+- `N8N_BASE_URL`: the HTTPS workspace origin, for example `https://lovespain.app.n8n.cloud` (no `/settings/api` or `/api/v1` suffix).
+- `N8N_API_KEY`: n8n API key stored only in Vercel. Never place it in `index.html`, GitHub, client-side storage, or chat.
+
+After saving or changing the variables, redeploy Production. Sign in to the LoveSpain dashboard and select **Automations & tools → Check connection**. The dashboard lists live workflow names/IDs/active states and recent execution metadata. Click **Inspect** next to a workflow to view a sanitized node-and-connection inventory, then **Download diagnostic JSON** if you need to share that inventory for troubleshooting.
+
+The inspection API is `GET /api/index?action=n8n_inspect&id=WORKFLOW_ID` and requires the existing signed reviewer session. It validates the workflow ID and returns **only** workflow metadata, node names/types/disabled flags, and connections. It does not return node parameters, credentials, pinned data, static data, execution payloads, or webhook URLs. The downloaded diagnostic JSON is **not a restorable backup**.
+
+**No n8n workflow changes are possible from this version of the dashboard.** Before adding writes, design separate administrator authorization, restorable encrypted/server-side backups, audit logs, revision checks, rollback, and explicit confirmation for activating or running workflows. An API connection in Vercel does not by itself grant this ChatGPT conversation direct n8n tool access.
+
+Run `npm test` for API authorization, validation, and redaction tests. Vercel preview build success alone does not prove live n8n functionality.
+
 ## Workflow connections
 After Workflow 2 generates copy, Workflow 3 finishes its video and Workflow 5 finishes a private page preview, POST a complete review package to:
 `https://YOUR-DASHBOARD/api/index?action=ingest`
@@ -36,7 +51,7 @@ Draft page GENERATION needs to happen before the review package is submitted, so
 - Authenticated n8n submission and authoritative verification endpoints.
 
 ## Current limits
-This package has not been deployed or connected to your live n8n, Supabase, Vercel, Dropbox or Metricool accounts. No real property records or media URLs were supplied for the dashboard. Demo state is browser-local; live state is server-side in Supabase. Live approval never directly publishes, releases a landing page, sends messages, or schedules a post.
+The dashboard's live service connections depend on the specific Vercel deployment and its environment variables; do not infer that Dropbox, Creatomate, Metricool or any n8n publishing workflow is integrated merely because n8n workflow inventory works. No real property records or media URLs were supplied for the dashboard. Demo state is browser-local; live state is server-side in Supabase. Live approval never directly publishes, releases a landing page, sends messages, or schedules a post.
 
 A history record is an application audit trail, not tamper-proof storage against database administrators. Media URLs are rendered directly in the reviewer's browser; external providers may require authentication and signed links may expire. Landing pages open in a new tab so Vercel protection can remain in force. Use HTTPS hosting. No external scripts, fonts or analytics are loaded by the dashboard itself.
 
