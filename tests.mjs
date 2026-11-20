@@ -240,6 +240,11 @@ test('OAuth progress diagnostics are reviewer-only and never reveal codes or tok
    assert.equal(u.searchParams.get('select'),'created_at');
    return {ok:true,status:200,json:async()=>[{created_at:'2026-11-20T10:01:00Z',access_hash:'PRIVATE_ACCESS_HASH'}]};
   }
+  if(u.pathname.endsWith('/ls_n8n_admin_audit')){
+   assert.equal(u.searchParams.get('select'),'created_at,details');
+   assert.equal(u.searchParams.get('action'),'eq.mcp_oauth_authorize');
+   return {ok:true,status:200,json:async()=>[{created_at:'2026-11-20T10:00:30Z',details:{stage:'password_accepted',password:'PRIVATE_PASSWORD'}}]};
+  }
   throw Error('Unexpected table');
  };
  try{
@@ -248,7 +253,9 @@ test('OAuth progress diagnostics are reviewer-only and never reveal codes or tok
   assert.deepEqual(response.data,{
    lastAuthorizationAt:'2026-11-20T10:00:00Z',
    lastAuthorizationCodeExchanged:false,
-   lastTokenIssuedAt:'2026-11-20T10:01:00Z'
+   lastTokenIssuedAt:'2026-11-20T10:01:00Z',
+   lastAuthorizationPostAt:'2026-11-20T10:00:30Z',
+   lastAuthorizationStage:'password_accepted'
   });
   assert.equal(JSON.stringify(response.data).includes('PRIVATE_'),false);
  }finally{globalThis.fetch=originalFetch;}
