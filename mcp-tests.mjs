@@ -83,8 +83,13 @@ test('OAuth PKCE login issues a bearer token only after separate admin authoriza
  assert.equal(login.status,400);
  const denied=await req('/api/mcp?mode=authorize','POST',{...fields,password:'wrong'},{origin:'https://lovespain.vercel.app'});
  assert.equal(denied.status,401);
+ assert.match(denied.headers['content-type'],/text\/html/);
+ assert.match(denied.data,/password was not accepted/);
+ assert.equal(db.ls_n8n_admin_audit.at(-1).details.stage,'password_rejected');
+ assert.equal(JSON.stringify(db.ls_n8n_admin_audit).includes('wrong'),false);
  const accepted=await req('/api/mcp?mode=authorize','POST',new URLSearchParams({...fields,password:process.env.N8N_ADMIN_PASSWORD}).toString(),{origin:'https://lovespain.vercel.app'});
  assert.equal(accepted.status,302);
+ assert.equal(db.ls_n8n_admin_audit.at(-1).details.stage,'code_issued');
  const code=new URL(accepted.headers.location).searchParams.get('code');
  const bad=await req('/api/mcp?mode=token','POST',{grant_type:'authorization_code',client_id:clientId,redirect_uri:fields.redirect_uri,code,code_verifier:'b'.repeat(64)});
  assert.equal(bad.status,400);
