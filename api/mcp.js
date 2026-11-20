@@ -6,7 +6,25 @@ const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.length===b.length&
 const bytes=n=>randomBytes(n).toString('base64url');
 const origin=req=>{const host=process.env.MCP_PUBLIC_ORIGIN;try{const u=new URL(host);if(u.protocol!=='https:'||u.pathname!=='/'||u.search||u.hash||u.username||u.password)throw Error();return u.origin;}catch{return null;}};
 const secret=()=>process.env.MCP_OAUTH_SECRET||'';
-const adminReady=()=>!!(secret().length>=32&&process.env.N8N_ADMIN_PASSWORD?.length>=20&&process.env.N8N_BACKUP_KEY&&process.env.N8N_BASE_URL&&process.env.N8N_API_KEY&&process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY);
+// Return only pass/fail statuses, never environment variable values or lengths.
+// Expose this through the authenticated reviewer dashboard, not the public MCP endpoint.
+export function mcpConfigurationStatus(){
+ const checks={
+  MCP_PUBLIC_ORIGIN:!!origin(),
+  MCP_OAUTH_SECRET:secret().length>=32,
+  N8N_ADMIN_PASSWORD:(process.env.N8N_ADMIN_PASSWORD||'').length>=20,
+  N8N_BACKUP_KEY:(()=>{
+   const v=process.env.N8N_BACKUP_KEY||'';
+   return /^[A-Za-z0-9+/]{43}=$/.test(v)&&Buffer.from(v,'base64').length===32;
+  })(),
+  N8N_BASE_URL:!!process.env.N8N_BASE_URL,
+  N8N_API_KEY:!!process.env.N8N_API_KEY,
+  SUPABASE_URL:!!process.env.SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY:!!process.env.SUPABASE_SERVICE_ROLE_KEY
+ };
+ return {ready:Object.values(checks).every(Boolean),checks};
+}
+const adminReady=()=>mcpConfigurationStatus().ready;
 const hmac=s=>createHmac('sha256',secret()).update(s).digest('base64url');
 const pack=obj=>{const p=Buffer.from(JSON.stringify(obj)).toString('base64url');return p+'.'+hmac(p);};
 const unpack=value=>{try{const [p,s,...extra]=String(value).split('.');if(extra.length||!same(s,hmac(p)))return null;return JSON.parse(Buffer.from(p,'base64url').toString('utf8'));}catch{return null;}};
