@@ -1,14 +1,15 @@
 import {createHash,timingSafeEqual} from 'node:crypto';
 
 const APPROVED={
- 'j0sOv1mefGZEduOz':'975d2ca1d32649c52ded01f68bdf6b22f84c276e8f70729db8df763f6db7e2d9',
- 'TJZk68rJBhGbKFdq':'fd4b4ba74bba2106cd9cd4ff12f2c880bd4460053913c6d18c2829ba262204a1',
- 'qvRgjY8DCVXhOQGk':'c61ca6ab1e54ef905937b164dbdab408c699e91c5b468e79eba6e8fbef7ba55b',
- 'eaIkhTfDXMoGDViG':'d6db037e9a29fa6421e0d4bb8316922c6b8425eaad5acb3df067b7616c47fe20'
+ 'j0sOv1mefGZEduOz':'c0981ebb7457c654fcd8364418499b07732bff97b42705eacc1024a6f41beff6',
+ 'TJZk68rJBhGbKFdq':'26b549368e6741f68a244751cca128d548524a8738be73c3ab09973d00ceb723',
+ 'qvRgjY8DCVXhOQGk':'c8fa1ccbc99dda9f89782cbd038d69e87286f9b00fa74d48005a9053a89872de',
+ 'eaIkhTfDXMoGDViG':'066783686767857f8190d6d73c9f85207f98565522d9bd1954f2ffbed2be727a'
 };
 const safeEqual=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.length===b.length&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
 const dataShape=w=>({name:w.name,nodes:w.nodes,connections:w.connections,settings:w.settings});
-export const fingerprint=w=>createHash('sha256').update(JSON.stringify(dataShape(w))).digest('hex');
+const canonical=x=>Array.isArray(x)?x.map(canonical):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,canonical(x[k])])):x;
+export const fingerprint=w=>createHash('sha256').update(JSON.stringify(canonical(dataShape(w)))).digest('hex');
 const plain=v=>v&&typeof v==='object'&&!Array.isArray(v);
 const workflowId=id=>typeof id==='string'&&/^[A-Za-z0-9_-]{1,100}$/.test(id);
 const send=(res,status,data)=>{res.statusCode=status;res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.end(JSON.stringify(data));};
@@ -36,7 +37,7 @@ function stableReferences(a,b){
  const byId=new Map(b.nodes.map(n=>[n.id,n]));
  for(const n of a.nodes){
   const other=byId.get(n.id);
-  if(!other||n.name!==other.name||n.type!==other.type||n.typeVersion!==other.typeVersion||JSON.stringify(n.credentials||{})!==JSON.stringify(other.credentials||{}))return false;
+  if(!other||n.name!==other.name||n.type!==other.type||n.typeVersion!==other.typeVersion||JSON.stringify(canonical(n.credentials||{}))!==JSON.stringify(canonical(other.credentials||{})))return false;
  }
  return true;
 }
