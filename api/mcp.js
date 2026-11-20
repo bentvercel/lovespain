@@ -51,20 +51,36 @@ const q=s=>encodeURIComponent(s);
 // Only authenticated dashboard reviewers can request these timestamps.
 // Never return OAuth codes, client IDs, hashes, passwords, or token values.
 export async function mcpOAuthStatus(){
- const [codes,tokens]=await Promise.all([
+ const [codes,tokens,attempts]=await Promise.all([
   store('ls_mcp_auth_codes','select=created_at,used_at&order=created_at.desc&limit=1'),
-  store('ls_mcp_tokens','select=created_at&order=created_at.desc&limit=1')
+  store('ls_mcp_tokens','select=created_at&order=created_at.desc&limit=1'),
+  store('ls_n8n_admin_audit','action=eq.mcp_oauth_authorize&select=created_at,details&order=created_at.desc&limit=1')
  ]);
  return {
   lastAuthorizationAt:codes[0]?.created_at||null,
   lastAuthorizationCodeExchanged:codes[0]?.used_at!=null,
-  lastTokenIssuedAt:tokens[0]?.created_at||null
+  lastTokenIssuedAt:tokens[0]?.created_at||null,
+  lastAuthorizationPostAt:attempts[0]?.created_at||null,
+  lastAuthorizationStage:attempts[0]?.details?.stage||null
  };
 }
 
 async function audit(action,workflowId,changeSetId,details={}){
  await store('ls_n8n_admin_audit','','POST',{action,workflow_id:workflowId||null,change_set_id:changeSetId||null,details});
 }
+
+async function recordOAuthStage(stage){
+ // Never record form fields, passwords, client IDs, redirect URLs, codes or tokens.
+ try{await audit('mcp_oauth_authorize',null,null,{stage});}catch{}
+}
+function authorizationError(res,status,message){
+ res.statusCode=status;
+ res.setHeader('Content-Type','text/html; charset=utf-8');
+ res.setHeader('Cache-Control','no-store');
+ res.setHeader('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'");
+ return res.end('<!doctype html><html><head><title>LoveSpain authorization</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font:16px system-ui;max-width:480px;margin:10vh auto;padding:24px"><h1>Authorization could not be completed</h1><p>'+escape(message)+'</p><p>Return to ChatGPT and retry the connection. Do not share your administrator password.</p></body></html>');
+}
+
 const aesKey=()=>{const k=Buffer.from(process.env.N8N_BACKUP_KEY||'','base64');if(k.length!==32)throw Error('Backup encryption key is not configured');return k;};
 function encrypt(data){const iv=randomBytes(12);const cipher=createCipheriv('aes-256-gcm',aesKey(),iv);const ct=Buffer.concat([cipher.update(JSON.stringify(data),'utf8'),cipher.final()]);return ['v1',iv.toString('base64url'),cipher.getAuthTag().toString('base64url'),ct.toString('base64url')].join('.');}
 function decrypt(value){const [v,i,t,c]=String(value).split('.');if(v!=='v1')throw Error('Unknown backup format');const decipher=createDecipheriv('aes-256-gcm',aesKey(),Buffer.from(i,'base64url'));decipher.setAuthTag(Buffer.from(t,'base64url'));return JSON.parse(Buffer.concat([decipher.update(Buffer.from(c,'base64url')),decipher.final()]).toString('utf8'));}
@@ -222,18 +238,35 @@ async function oauth(req,res,mode,o){
   return json(res,201,{client_id:id,client_id_issued_at:Math.floor(now/1000),client_id_expires_at:Math.floor((now+90*86400000)/1000),redirect_uris:uris,token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code']});
  }
  if(mode==='authorize'&&(req.method==='GET'||req.method==='POST')){
+  if(req.method==='POST')await recordOAuthStage('received');
   const p=req.method==='GET'?Object.fromEntries(new URL(req.url,'http://local').searchParams):formBody(req);
   const c=getClient(p.client_id);
-  if(!c||!c.redirect_uris.includes(p.redirect_uri)||p.response_type!=='code'||p.code_challenge_method!=='S256'||!/^[A-Za-z0-9_-]{43,128}$/.test(p.code_challenge||'')||typeof p.state!=='string'||p.state.length<8||p.state.length>512||p.scope!=='n8n:manage')return json(res,400,{error:'invalid_request'});
+  if(!c||!c.redirect_uris.includes(p.redirect_uri)||p.response_type!=='code'||p.code_challenge_method!=='S256'||!/^[A-Za-z0-9_-]{43,128}$/.test(p.code_challenge||'')||typeof p.state!=='string'||p.state.length<8||p.state.length>512||p.scope!=='n8n:manage'){
+   if(req.method==='POST'){await recordOAuthStage('invalid_request');return authorizationError(res,400,'The authorization form was invalid or expired.');}
+   return json(res,400,{error:'invalid_request'});
+  }
   if(req.method==='GET'){
    const fields=['client_id','redirect_uri','response_type','code_challenge','code_challenge_method','state','scope'].map(k=>'<input type="hidden" name="'+k+'" value="'+escape(p[k])+'">').join('');
    res.statusCode=200;res.setHeader('Content-Type','text/html; charset=utf-8');res.setHeader('Cache-Control','no-store');res.setHeader('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
    return res.end('<!doctype html><html><head><title>LoveSpain n8n Admin Authorization</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font:16px system-ui;max-width:480px;margin:10vh auto;padding:24px"><h1>Authorize LoveSpain n8n management</h1><p>This grants ChatGPT the ability to stage and, after explicit confirmation, save workflow changes. It cannot activate or run workflows.</p><form method="POST" action="/api/mcp?mode=authorize">'+fields+'<label>Separate n8n administrator password<br><input required type="password" name="password" autocomplete="current-password"></label><p><button type="submit">Authorize this connection</button></p></form></body></html>');
   }
-  if(req.headers.origin&&req.headers.origin!==o)return json(res,403,{error:'invalid_origin'});
-  if(!same(p.password,process.env.N8N_ADMIN_PASSWORD))return json(res,401,{error:'Administrator authorization failed'});
+  if(req.headers.origin&&req.headers.origin!==o){
+   await recordOAuthStage('invalid_origin');
+   return authorizationError(res,403,'The authorization form came from an unexpected origin.');
+  }
+  if(!same(p.password,process.env.N8N_ADMIN_PASSWORD)){
+   await recordOAuthStage('password_rejected');
+   return authorizationError(res,401,'The administrator password was not accepted.');
+  }
+  await recordOAuthStage('password_accepted');
   const code=bytes(32);
-  await store('ls_mcp_auth_codes','','POST',{code_hash:hash(code),client_id:p.client_id,redirect_uri:p.redirect_uri,challenge:p.code_challenge,expires_at:new Date(Date.now()+300000).toISOString()});
+  try{
+   await store('ls_mcp_auth_codes','','POST',{code_hash:hash(code),client_id:p.client_id,redirect_uri:p.redirect_uri,challenge:p.code_challenge,expires_at:new Date(Date.now()+300000).toISOString()});
+  }catch{
+   await recordOAuthStage('storage_failed');
+   return authorizationError(res,503,'The authorization database could not save the connection. Check the secure server diagnostics.');
+  }
+  await recordOAuthStage('code_issued');
   const target=new URL(p.redirect_uri);target.searchParams.set('code',code);target.searchParams.set('state',p.state);
   res.statusCode=302;res.setHeader('Location',target.toString());res.setHeader('Cache-Control','no-store');return res.end();
  }
