@@ -6,6 +6,26 @@ async function db(path,method='GET',body){const r=await fetch(process.env.SUPABA
 function session(req){try{const value=(req.headers.cookie||'').split('; ').find(x=>x.startsWith('ls_session='))?.slice(11);const [b,s]=value.split('.');if(!equal(s,sign(b)))return null;const p=JSON.parse(Buffer.from(b,'base64url'));return p.exp>Date.now()?p:null}catch{return null}}
 const sha=d=>createHash('sha256').update(JSON.stringify(d)).digest('hex');
 const statuses=['approved','rejected','revision_requested'];
+
+/* n8n credentials are server-only. Never proxy arbitrary URLs, nodes, or credential payloads. */
+async function n8nGet(resource,query=''){
+ const base=process.env.N8N_BASE_URL?.trim();
+ const key=process.env.N8N_API_KEY?.trim();
+ if(!base||!key)return {error:'n8n API is not configured in Vercel.',status:503};
+ let url;
+ try{
+  const origin=new URL(base);
+  if(origin.protocol!=='https:'||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash)throw new Error('Invalid URL');
+  url=new URL('/api/v1/'+resource+query,origin.origin);
+ }catch{return {error:'N8N_BASE_URL must be the HTTPS n8n workspace origin (no path).',status:503}}
+ try{
+  const response=await fetch(url,{method:'GET',headers:{'X-N8N-API-KEY':key,Accept:'application/json'},signal:AbortSignal.timeout(12000),redirect:'error',cache:'no-store'});
+  if(response.status===401||response.status===403)return {error:'n8n rejected the API key or its permissions.',status:502};
+  if(!response.ok)return {error:'n8n API request failed (HTTP '+response.status+').',status:502};
+  return {data:await response.json(),status:200};
+ }catch{return {error:'Could not reach n8n. Check the workspace URL and network access.',status:502}}
+}
+
 export default async function handler(req,res){
 try{
 const action=new URL(req.url,'http://local').searchParams.get('action')||'list';
@@ -36,6 +56,19 @@ if(action==='verified'&&method==='GET'){
 }
 const user=session(req);if(!user)return send(res,401,{error:'Sign in required'});
 if(action==='logout'&&method==='POST'){res.setHeader('Set-Cookie','ls_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(res,200,{ok:true});}
+if(method==='GET'&&['n8n_status','n8n_workflows','n8n_executions'].includes(action)){
+ const resource=action==='n8n_executions'?'executions':'workflows';
+ const query=action==='n8n_status'?'?limit=1':action==='n8n_executions'?'?limit=20&includeData=false':'?limit=100';
+ const result=await n8nGet(resource,query);
+ if(result.error)return send(res,result.status,{connected:false,error:result.error});
+ if(action==='n8n_status')return send(res,200,{connected:true,configured:true});
+ if(action==='n8n_workflows'){
+  const data=result.data||{};
+  return send(res,200,{connected:true,workflows:(Array.isArray(data.data)?data.data:[]).map(w=>({id:String(w.id),name:String(w.name||'Untitled workflow'),active:!!w.active,updatedAt:w.updatedAt||null,createdAt:w.createdAt||null})),hasMore:!!data.nextCursor});
+ }
+ const data=result.data||{};
+ return send(res,200,{connected:true,executions:(Array.isArray(data.data)?data.data:[]).map(e=>({id:String(e.id),workflowId:String(e.workflowId||''),status:String(e.status||'unknown'),startedAt:e.startedAt||null,stoppedAt:e.stoppedAt||null,finished:!!e.finished})),hasMore:!!data.nextCursor});
+}
 if(action==='list'&&method==='GET')return send(res,200,{reviewer:user.reviewer,csrf:user.csrf,campaigns:await db('ls_campaigns?order=updated_at.desc')});
 if(action==='decision'&&method==='POST'){
  if(!equal(req.headers['x-csrf-token'],user.csrf))return send(res,403,{error:'Refresh your session'});
