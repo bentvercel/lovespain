@@ -1,0 +1,79 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createHmac} from 'node:crypto';
+import handler from './api/index.js';
+
+process.env.SUPABASE_URL='https://example.supabase.co';
+process.env.SUPABASE_SERVICE_ROLE_KEY='test-service-role';
+process.env.SESSION_SECRET='test-session-secret';
+process.env.REVIEW_PASSWORD='test-review-password';
+process.env.INGEST_TOKEN='test-ingest-token';
+process.env.N8N_BASE_URL='https://lovespain.app.n8n.cloud';
+process.env.N8N_API_KEY='test-api-key';
+
+const token=Buffer.from(JSON.stringify({reviewer:'Test',exp:Date.now()+60000,csrf:'test-csrf'})).toString('base64url');
+const signature=createHmac('sha256',process.env.SESSION_SECRET).update(token).digest('hex');
+const cookie='ls_session='+token+'.'+signature;
+async function request(action,authorized=true){
+ const headers={host:'localhost:3000'};
+ if(authorized)headers.cookie=cookie;
+ let data;
+ const res={
+  statusCode:200,
+  headers:{},
+  setHeader(key,value){this.headers[key.toLowerCase()]=value},
+  end(body){data=JSON.parse(body)}
+ };
+ await handler({url:'/api/index?action='+action,method:'GET',headers},res);
+ return {status:res.statusCode,data};
+}
+const oldFetch=globalThis.fetch;
+test.after(()=>{globalThis.fetch=oldFetch});
+
+test('workflow inspection rejects anonymous callers before contacting n8n',async()=>{
+ globalThis.fetch=()=>{throw Error('Unexpected upstream request')};
+ const response=await request('n8n_inspect&id=abc',false);
+ assert.equal(response.status,401);
+});
+
+test('workflow inspection validates IDs and prevents path injection',async()=>{
+ globalThis.fetch=()=>{throw Error('Unexpected upstream request')};
+ const response=await request('n8n_inspect&id=..%2Fcredentials');
+ assert.equal(response.status,400);
+});
+
+test('workflow inspection returns graph metadata but no parameters or credentials',async()=>{
+ let requested;
+ globalThis.fetch=async(url,options)=>{
+  requested={url:String(url),options};
+  return {ok:true,status:200,json:async()=>({
+   id:'abc',name:'EDEN BEACH - Workflow 3',active:true,updatedAt:'2026-11-20T00:00:00Z',
+   nodes:[
+    {id:'1',name:'Dropbox',type:'n8n-nodes-base.dropbox',typeVersion:1,parameters:{accessToken:'VERY_SECRET'},credentials:{dropboxOAuth2Api:{id:'private'}}},
+    {id:'2',name:'Creatomate',type:'n8n-nodes-base.httpRequest',typeVersion:4,parameters:{url:'https://secret.example'},disabled:true}
+   ],
+   connections:{Dropbox:{main:[[{node:'Creatomate',type:'main',index:0}]]}},
+   staticData:{private:'SENSITIVE'},pinData:{Dropbox:{email:'test@example.com'}}
+  })};
+ };
+ const response=await request('n8n_inspect&id=abc');
+ assert.equal(response.status,200);
+ assert.equal(requested.url,'https://lovespain.app.n8n.cloud/api/v1/workflows/abc');
+ assert.equal(requested.options.method,'GET');
+ assert.equal(requested.options.headers['X-N8N-API-KEY'],'test-api-key');
+ assert.equal(response.data.inspection.nodeCount,2);
+ assert.equal(response.data.inspection.nodes[1].disabled,true);
+ assert.deepEqual(response.data.inspection.connections[0],{from:'Dropbox',to:'Creatomate',output:'main',outputIndex:0,input:'main',inputIndex:0});
+ const serialized=JSON.stringify(response.data);
+ for(const secret of ['VERY_SECRET','SENSITIVE','test@example.com','secret.example','private']){
+  assert.equal(serialized.includes(secret),false,'Leaked '+secret);
+ }
+ assert.match(serialized,/not a restorable workflow backup/i);
+});
+
+test('n8n inspection handles upstream failure without leaking key',async()=>{
+ globalThis.fetch=async()=>({ok:false,status:403});
+ const response=await request('n8n_inspect&id=abc');
+ assert.equal(response.status,502);
+ assert.equal(JSON.stringify(response.data).includes('test-api-key'),false);
+});
