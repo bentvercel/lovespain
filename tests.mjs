@@ -77,3 +77,27 @@ test('n8n inspection handles upstream failure without leaking key',async()=>{
  assert.equal(response.status,502);
  assert.equal(JSON.stringify(response.data).includes('test-api-key'),false);
 });
+
+
+test('execution health requests only metadata and excludes execution payloads',async()=>{
+ let requested;
+ globalThis.fetch=async(url,options)=>{
+  requested={url:String(url),options};
+  return {ok:true,status:200,json:async()=>({
+   nextCursor:'older-executions',
+   data:[{id:'501',workflowId:'w3',status:'error',startedAt:'2026-11-20T12:00:00Z',stoppedAt:'2026-11-20T12:01:00Z',finished:true,
+    data:{resultData:{runData:{secret:'SENSITIVE_PAYLOAD'}}},workflowData:{nodes:[{parameters:{token:'DO_NOT_EXPOSE'}}]}}]
+  })};
+ };
+ const response=await request('n8n_executions');
+ assert.equal(response.status,200);
+ assert.equal(requested.url,'https://lovespain.app.n8n.cloud/api/v1/executions?limit=100&includeData=false');
+ assert.equal(requested.options.method,'GET');
+ assert.equal(response.data.hasMore,true);
+ assert.equal(response.data.executions.length,1);
+ assert.deepEqual(response.data.executions[0],{
+  id:'501',workflowId:'w3',status:'error',startedAt:'2026-11-20T12:00:00Z',stoppedAt:'2026-11-20T12:01:00Z',finished:true
+ });
+ assert.equal(JSON.stringify(response.data).includes('SENSITIVE_PAYLOAD'),false);
+ assert.equal(JSON.stringify(response.data).includes('DO_NOT_EXPOSE'),false);
+});
