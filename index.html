@@ -321,12 +321,13 @@ async function checkN8n(){
  $('#n8n-status').textContent='Contacting n8n securely through Vercel…';
  $('#n8n-results').hidden=true;
  try{
-  const [workflows,executions]=await Promise.all([api('n8n_workflows'),api('n8n_executions')]);
-  const list=workflows.workflows||[],runs=executions.executions||[];
-  $('#n8n-status').textContent='Connected to n8n Cloud. Live workflow information loaded.';
+  const workflows=await api('n8n_workflows');
+  const executions=await api('n8n_executions').catch(()=>null);
+  const list=workflows.workflows||[],runs=executions?.executions||[];
+  $('#n8n-status').textContent=executions?'Connected to n8n Cloud. Live workflow information loaded.':'Connected to n8n Cloud. Workflow access confirmed; execution history unavailable for this API key.';
   $('#n8n-summary').textContent=list.length+' workflows found'+(workflows.hasMore?' (first 100 shown)':'')+' · '+list.filter(w=>w.active).length+' active · '+runs.length+' recent executions';
   $('#n8n-workflows').innerHTML=list.map(w=>'<div class="n8n-item"><span><strong>'+esc(w.name)+'</strong><small>ID: '+esc(w.id)+'</small></span><span class="n8n-pill '+(w.active?'on':'')+'">'+(w.active?'Active':'Inactive')+'</span></div>').join('')||'<p>No workflows returned by n8n.</p>';
-  $('#n8n-executions').innerHTML=runs.map(e=>'<div class="n8n-item"><span><strong>Execution '+esc(e.id)+'</strong><small>Workflow '+esc(e.workflowId)+' · '+esc(e.startedAt?new Date(e.startedAt).toLocaleString():'Time unavailable')+'</small></span><span class="n8n-pill">'+esc(e.status)+'</span></div>').join('')||'<p>No recent executions returned by n8n.</p>';
+  $('#n8n-executions').innerHTML=runs.map(e=>'<div class="n8n-item"><span><strong>Execution '+esc(e.id)+'</strong><small>Workflow '+esc(e.workflowId)+' · '+esc(e.startedAt?new Date(e.startedAt).toLocaleString():'Time unavailable')+'</small></span><span class="n8n-pill">'+esc(e.status)+'</span></div>').join('')||'<p>'+(executions?'No recent executions returned by n8n.':'Execution history is not accessible with the current API key.')+'</p>';
   $('#n8n-results').hidden=false;
  }catch(e){$('#n8n-status').textContent='Connection check failed: '+e.message}
  finally{button.disabled=false;button.textContent='Check connection'}
