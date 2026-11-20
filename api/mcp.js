@@ -37,7 +37,12 @@ const reqBody=req=>{if(typeof req.body==='string'){try{return JSON.parse(req.bod
 const formBody=req=>{
  const body=req.body;
  if(Buffer.isBuffer(body))return Object.fromEntries(new URLSearchParams(body.toString('utf8')));
- if(typeof body==='string')return Object.fromEntries(new URLSearchParams(body));
+ if(typeof body==='string'){
+  if((req.headers?.['content-type']||'').toLowerCase().includes('application/json')){
+   try{return JSON.parse(body)}catch{return {}}
+  }
+  return Object.fromEntries(new URLSearchParams(body));
+ }
  if(body instanceof URLSearchParams)return Object.fromEntries(body);
  return body&&typeof body==='object'?body:{};
 };
@@ -73,7 +78,8 @@ async function recordOAuthStage(stage){
  // Never record form fields, passwords, client IDs, redirect URLs, codes or tokens.
  try{await audit('mcp_oauth_authorize',null,null,{stage});}catch{}
 }
-function authorizationError(res,status,message){
+function authorizationError(res,status,message,req){
+ if((req?.headers?.accept||'').includes('application/json'))return json(res,status,{error:message});
  res.statusCode=status;
  res.setHeader('Content-Type','text/html; charset=utf-8');
  res.setHeader('Cache-Control','no-store');
@@ -242,21 +248,48 @@ async function oauth(req,res,mode,o){
   const p=req.method==='GET'?Object.fromEntries(new URL(req.url,'http://local').searchParams):formBody(req);
   const c=getClient(p.client_id);
   if(!c||!c.redirect_uris.includes(p.redirect_uri)||p.response_type!=='code'||p.code_challenge_method!=='S256'||!/^[A-Za-z0-9_-]{43,128}$/.test(p.code_challenge||'')||typeof p.state!=='string'||p.state.length<8||p.state.length>512||p.scope!=='n8n:manage'){
-   if(req.method==='POST'){await recordOAuthStage('invalid_request');return authorizationError(res,400,'The authorization form was invalid or expired.');}
+   if(req.method==='POST'){await recordOAuthStage('invalid_request');return authorizationError(res,400,'The authorization form was invalid or expired.',req);}
    return json(res,400,{error:'invalid_request'});
   }
   if(req.method==='GET'){
    const fields=['client_id','redirect_uri','response_type','code_challenge','code_challenge_method','state','scope'].map(k=>'<input type="hidden" name="'+k+'" value="'+escape(p[k])+'">').join('');
-   res.statusCode=200;res.setHeader('Content-Type','text/html; charset=utf-8');res.setHeader('Cache-Control','no-store');res.setHeader('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
-   return res.end('<!doctype html><html><head><title>LoveSpain n8n Admin Authorization</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font:16px system-ui;max-width:480px;margin:10vh auto;padding:24px"><h1>Authorize LoveSpain n8n management</h1><p>This grants ChatGPT the ability to stage and, after explicit confirmation, save workflow changes. It cannot activate or run workflows.</p><form method="POST" action="/api/mcp?mode=authorize">'+fields+'<label>Separate n8n administrator password<br><input required type="password" name="password" autocomplete="current-password"></label><p><button type="submit">Authorize this connection</button></p></form></body></html>');
+   // Vercel's request gateway expects a JSON body for this function. A native
+   // HTML form sends application/x-www-form-urlencoded and is rejected before
+   // the handler with a plain-text "Invalid JSON" error.
+   // Submit same-origin JSON instead; keep passwords out of URLs and logs.
+   const nonce=bytes(18);
+   const clientScript=`const form=document.getElementById('oauth-form');
+const error=document.getElementById('oauth-error');
+const button=form.querySelector('button');
+form.addEventListener('submit',async event=>{
+ event.preventDefault();
+ error.textContent='';
+ button.disabled=true;
+ try{
+  const response=await fetch('/api/mcp?mode=authorize',{
+   method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+   credentials:'same-origin',cache:'no-store',
+   body:JSON.stringify(Object.fromEntries(new FormData(form)))
+  });
+  const result=await response.json();
+  if(!response.ok||!result.redirect_to)throw Error(result.error||'Authorization could not be completed');
+  window.location.assign(result.redirect_to);
+ }catch(e){
+  error.textContent=e instanceof SyntaxError?'Server returned an unexpected response. Contact the administrator.':e.message;
+  button.disabled=false;
+ }
+});`;
+   res.statusCode=200;res.setHeader('Content-Type','text/html; charset=utf-8');res.setHeader('Cache-Control','no-store');
+   res.setHeader('Content-Security-Policy',"default-src 'none'; script-src 'nonce-"+nonce+"'; connect-src 'self'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+   return res.end('<!doctype html><html><head><title>LoveSpain n8n Admin Authorization</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font:16px system-ui;max-width:480px;margin:10vh auto;padding:24px"><h1>Authorize LoveSpain n8n management</h1><p>This grants ChatGPT the ability to stage and, after explicit confirmation, save workflow changes. It cannot activate or run workflows.</p><form id="oauth-form" method="POST" action="/api/mcp?mode=authorize">'+fields+'<label>Separate n8n administrator password<br><input required type="password" name="password" autocomplete="current-password"></label><p><button type="submit">Authorize this connection</button></p></form><p id="oauth-error" role="alert"></p><noscript>JavaScript is required for secure authorization.</noscript><script nonce="'+nonce+'">'+clientScript+'</script></body></html>');
   }
   if(req.headers.origin&&req.headers.origin!==o){
    await recordOAuthStage('invalid_origin');
-   return authorizationError(res,403,'The authorization form came from an unexpected origin.');
+   return authorizationError(res,403,'The authorization form came from an unexpected origin.',req);
   }
   if(!same(p.password,process.env.N8N_ADMIN_PASSWORD)){
    await recordOAuthStage('password_rejected');
-   return authorizationError(res,401,'The administrator password was not accepted.');
+   return authorizationError(res,401,'The administrator password was not accepted.',req);
   }
   await recordOAuthStage('password_accepted');
   const code=bytes(32);
@@ -264,10 +297,11 @@ async function oauth(req,res,mode,o){
    await store('ls_mcp_auth_codes','','POST',{code_hash:hash(code),client_id:p.client_id,redirect_uri:p.redirect_uri,challenge:p.code_challenge,expires_at:new Date(Date.now()+300000).toISOString()});
   }catch{
    await recordOAuthStage('storage_failed');
-   return authorizationError(res,503,'The authorization database could not save the connection. Check the secure server diagnostics.');
+   return authorizationError(res,503,'The authorization database could not save the connection. Check the secure server diagnostics.',req);
   }
   await recordOAuthStage('code_issued');
   const target=new URL(p.redirect_uri);target.searchParams.set('code',code);target.searchParams.set('state',p.state);
+  if((req.headers.accept||'').includes('application/json'))return json(res,200,{redirect_to:target.toString()});
   res.statusCode=302;res.setHeader('Location',target.toString());res.setHeader('Cache-Control','no-store');return res.end();
  }
  if(mode==='token'&&req.method==='POST'){
