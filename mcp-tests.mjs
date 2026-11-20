@@ -83,12 +83,12 @@ test('OAuth PKCE login issues a bearer token only after separate admin authoriza
  assert.equal(login.status,400);
  const denied=await req('/api/mcp?mode=authorize','POST',{...fields,password:'wrong'},{origin:'https://lovespain.vercel.app'});
  assert.equal(denied.status,401);
- const accepted=await req('/api/mcp?mode=authorize','POST',{...fields,password:process.env.N8N_ADMIN_PASSWORD},{origin:'https://lovespain.vercel.app'});
+ const accepted=await req('/api/mcp?mode=authorize','POST',new URLSearchParams({...fields,password:process.env.N8N_ADMIN_PASSWORD}).toString(),{origin:'https://lovespain.vercel.app'});
  assert.equal(accepted.status,302);
  const code=new URL(accepted.headers.location).searchParams.get('code');
  const bad=await req('/api/mcp?mode=token','POST',{grant_type:'authorization_code',client_id:clientId,redirect_uri:fields.redirect_uri,code,code_verifier:'b'.repeat(64)});
  assert.equal(bad.status,400);
- const tok=await req('/api/mcp?mode=token','POST',{grant_type:'authorization_code',client_id:clientId,redirect_uri:fields.redirect_uri,code,code_verifier:verifier});
+ const tok=await req('/api/mcp?mode=token','POST',Buffer.from(new URLSearchParams({grant_type:'authorization_code',client_id:clientId,redirect_uri:fields.redirect_uri,code,code_verifier:verifier}).toString()));
  assert.equal(tok.status,200);access=tok.data.access_token;
  assert.equal(typeof access,'string');
  const replay=await req('/api/mcp?mode=token','POST',{grant_type:'authorization_code',client_id:clientId,redirect_uri:fields.redirect_uri,code,code_verifier:verifier});
