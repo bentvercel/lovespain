@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHmac} from 'node:crypto';
 import handler from './api/index.js';
+import {fingerprint} from './api/n8n-management.js';
 
 process.env.SUPABASE_URL='https://example.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY='test-service-role';
@@ -100,4 +101,59 @@ test('execution health requests only metadata and excludes execution payloads',a
  });
  assert.equal(JSON.stringify(response.data).includes('SENSITIVE_PAYLOAD'),false);
  assert.equal(JSON.stringify(response.data).includes('DO_NOT_EXPOSE'),false);
+});
+
+
+async function deploymentRequest(action,body,authorized=true,csrfValue='test-csrf'){
+ const headers={host:'localhost:3000','x-csrf-token':csrfValue};
+ if(authorized)headers.cookie=cookie;
+ let data;
+ const res={statusCode:200,headers:{},setHeader(key,value){this.headers[key.toLowerCase()]=value},end(raw){data=JSON.parse(raw)}};
+ await handler({url:'/api/index?action='+action,method:'POST',headers,body},res);
+ return {status:res.statusCode,data};
+}
+test('n8n deployment cannot be called by anonymous users',async()=>{
+ globalThis.fetch=()=>{throw Error('Upstream access forbidden')};
+ process.env.N8N_DEPLOY_ENABLED='true';
+ process.env.N8N_DEPLOY_PASSWORD='a-long-and-separate-admin-password';
+ const result=await deploymentRequest('n8n_deploy_apply',{adminPassword:process.env.N8N_DEPLOY_PASSWORD},false);
+ assert.equal(result.status,401);
+});
+test('n8n deployment remains disabled unless feature flag is explicitly set',async()=>{
+ globalThis.fetch=()=>{throw Error('Upstream access forbidden')};
+ process.env.N8N_DEPLOY_ENABLED='false';
+ const result=await deploymentRequest('n8n_deploy_plan',{adminPassword:'a-long-and-separate-admin-password'});
+ assert.equal(result.status,503);
+ assert.match(result.data.error,/disabled/);
+});
+test('n8n deployment requires separate administrator password and CSRF',async()=>{
+ globalThis.fetch=()=>{throw Error('Upstream access forbidden')};
+ process.env.N8N_DEPLOY_ENABLED='true';
+ process.env.N8N_DEPLOY_PASSWORD='a-long-and-separate-admin-password';
+ const missingCsrf=await deploymentRequest('n8n_deploy_plan',{adminPassword:process.env.N8N_DEPLOY_PASSWORD},true,'wrong');
+ assert.equal(missingCsrf.status,403);
+ const badPassword=await deploymentRequest('n8n_deploy_plan',{adminPassword:'incorrect'});
+ assert.equal(badPassword.status,403);
+ process.env.N8N_DEPLOY_PASSWORD=process.env.REVIEW_PASSWORD;
+ const reusedPassword=await deploymentRequest('n8n_deploy_plan',{adminPassword:process.env.REVIEW_PASSWORD});
+ assert.equal(reusedPassword.status,503);
+ process.env.N8N_DEPLOY_PASSWORD='a-long-and-separate-admin-password';
+});
+test('n8n deployment rejects unapproved workflow IDs and arbitrary JSON without upstream writes',async()=>{
+ globalThis.fetch=()=>{throw Error('Upstream access forbidden')};
+ process.env.N8N_DEPLOY_ENABLED='true';
+ process.env.N8N_DEPLOY_PASSWORD='a-long-and-separate-admin-password';
+ const invalid=await deploymentRequest('n8n_deploy_apply',{id:'arbitrary',adminPassword:process.env.N8N_DEPLOY_PASSWORD,original:{},candidate:{}});
+ assert.equal(invalid.status,400);
+ const fake={id:'j0sOv1mefGZEduOz',name:'Fake',nodes:[],connections:{},settings:{}};
+ const notApproved=await deploymentRequest('n8n_deploy_apply',{id:fake.id,adminPassword:process.env.N8N_DEPLOY_PASSWORD,original:fake,candidate:fake});
+ assert.equal(notApproved.status,400);
+});
+
+test('workflow fingerprint ignores JSON property ordering but detects node changes',()=>{
+ const a={name:'Example',nodes:[{id:'1',name:'Node',type:'n8n-nodes-base.code',parameters:{jsCode:'return [];'}}],connections:{},settings:{executionOrder:'v1'}};
+ const b={settings:{executionOrder:'v1'},connections:{},nodes:[{parameters:{jsCode:'return [];'},type:'n8n-nodes-base.code',name:'Node',id:'1'}],name:'Example'};
+ assert.equal(fingerprint(a),fingerprint(b));
+ b.nodes[0].parameters.jsCode='return [1];';
+ assert.notEqual(fingerprint(a),fingerprint(b));
 });
