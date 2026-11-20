@@ -83,8 +83,8 @@ test('OAuth PKCE login issues a bearer token only after separate admin authoriza
  assert.equal(login.status,400);
  const browserForm=await req('/api/mcp?mode=authorize&'+new URLSearchParams(fields).toString(),'GET');
  assert.equal(browserForm.status,200);
- assert.match(browserForm.data,/Content-Type.*application\\/json|Content-Type':\\s*'application\\/json/);
- assert.match(browserForm.data,/window\\.location\\.assign/);
+ assert.ok(browserForm.data.includes("'Content-Type':'application/json'"));
+ assert.ok(browserForm.data.includes('window.location.assign'));
  assert.match(browserForm.headers['content-security-policy'],/script-src 'nonce-/);
  assert.match(browserForm.headers['content-security-policy'],/connect-src 'self'/);
  assert.equal(browserForm.data.includes(process.env.N8N_ADMIN_PASSWORD),false);
@@ -97,7 +97,7 @@ test('OAuth PKCE login issues a bearer token only after separate admin authoriza
  const jsonHeaders={origin:'https://lovespain.vercel.app',accept:'application/json','content-type':'application/json'};
  const deniedJson=await req('/api/mcp?mode=authorize','POST',JSON.stringify({...fields,password:'wrong'}),jsonHeaders);
  assert.equal(deniedJson.status,401);
- assert.match(deniedJson.headers['content-type'],/application\\/json/);
+ assert.ok(deniedJson.headers['content-type'].includes('application/json'));
  assert.match(deniedJson.data.error,/password was not accepted/);
  const accepted=await req('/api/mcp?mode=authorize','POST',JSON.stringify({...fields,password:process.env.N8N_ADMIN_PASSWORD}),jsonHeaders);
  assert.equal(accepted.status,200);
