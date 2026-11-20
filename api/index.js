@@ -1,5 +1,6 @@
 import {createHmac,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
 import {manageN8n} from './n8n-management.js';
+import mcpHandler from './mcp.js';
 const equal=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.length===b.length&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
 const sign=s=>createHmac('sha256',process.env.SESSION_SECRET).update(s).digest('hex');
 const send=(res,status,body)=>{res.statusCode=status;res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(body));};
@@ -29,6 +30,18 @@ async function n8nGet(resource,query=''){
 
 export default async function handler(req,res){
 try{
+// Some Vercel configurations route /api/mcp and OAuth discovery to the dashboard
+// entrypoint. Dispatch before reviewer session checks; MCP applies its own OAuth.
+const route=new URL(req.url,'http://local');
+const discovery=route.pathname==='/.well-known/oauth-authorization-server'?'oauth_metadata':
+  (route.pathname==='/.well-known/oauth-protected-resource'||route.pathname==='/.well-known/oauth-protected-resource/api/mcp')?'protected_metadata':null;
+if(discovery){
+ req.url='/api/mcp?mode='+discovery;
+ return mcpHandler(req,res);
+}
+if(route.pathname==='/api/mcp'||['oauth_metadata','protected_metadata','register','authorize','token'].includes(route.searchParams.get('mode'))){
+ return mcpHandler(req,res);
+}
 const action=new URL(req.url,'http://local').searchParams.get('action')||'list';
 if(action==='health')return send(res,200,{configured:!!(process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY&&process.env.SESSION_SECRET&&process.env.REVIEW_PASSWORD&&process.env.INGEST_TOKEN)});
 if(!process.env.SUPABASE_URL||!process.env.SUPABASE_SERVICE_ROLE_KEY||!process.env.SESSION_SECRET)return send(res,503,{error:'Live service is not configured. Use the explicitly labelled demo or complete server setup.'});

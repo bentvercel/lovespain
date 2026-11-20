@@ -157,3 +157,32 @@ test('workflow fingerprint ignores JSON property ordering but detects node chang
  b.nodes[0].parameters.jsCode='return [1];';
  assert.notEqual(fingerprint(a),fingerprint(b));
 });
+
+test('MCP OAuth metadata survives dashboard API routing fallback',async()=>{
+ process.env.MCP_PUBLIC_ORIGIN='https://lovespain.vercel.app';
+ process.env.MCP_OAUTH_SECRET='test-only-mcp-oauth-secret-32-chars';
+ process.env.N8N_ADMIN_PASSWORD='test-only-admin-password-32-chars';
+ process.env.N8N_BACKUP_KEY=Buffer.alloc(32,3).toString('base64');
+ async function routed(url,method='GET'){
+  let raw='',status=200,headers={};
+  const res={set statusCode(v){status=v},get statusCode(){return status},setHeader(k,v){headers[k.toLowerCase()]=v},end(v=''){raw=v}};
+  await handler({url,method,headers:{host:'lovespain.vercel.app'}},res);
+  return {status,headers,body:JSON.parse(raw)};
+ }
+ const viaIndex=await routed('/api/index?mode=oauth_metadata');
+ assert.equal(viaIndex.status,200);
+ assert.equal(viaIndex.body.authorization_endpoint,'https://lovespain.vercel.app/api/mcp?mode=authorize');
+ assert.equal(viaIndex.body.registration_endpoint,'https://lovespain.vercel.app/api/mcp?mode=register');
+ const direct=await routed('/api/mcp?mode=oauth_metadata&utm_source=chatgpt.com');
+ assert.equal(direct.status,200);
+ assert.deepEqual(direct.body,viaIndex.body);
+ const discovery=await routed('/.well-known/oauth-authorization-server');
+ assert.equal(discovery.status,200);
+ assert.deepEqual(discovery.body,viaIndex.body);
+ const protectedDiscovery=await routed('/.well-known/oauth-protected-resource/api/mcp');
+ assert.equal(protectedDiscovery.status,200);
+ assert.equal(protectedDiscovery.body.resource,'https://lovespain.vercel.app/api/mcp');
+ const unauthenticated=await routed('/api/mcp','POST');
+ assert.equal(unauthenticated.status,401);
+ assert.match(unauthenticated.headers['www-authenticate'],/oauth-protected-resource/);
+});
