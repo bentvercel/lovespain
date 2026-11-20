@@ -195,6 +195,11 @@ body[data-view="history"] .queue{display:block}
 .n8n-graph-connections{max-height:250px;overflow:auto;padding-left:20px;font-size:12px}
 .n8n-graph-connections li{padding:4px 0;overflow-wrap:anywhere}
 @media(max-width:650px){.n8n-inspector-head{flex-direction:column}.n8n-inspector-head .btn{width:100%}.n8n-graph-list{grid-template-columns:1fr}.n8n-item{flex-wrap:wrap}.n8n-workflow-actions{width:100%;justify-content:space-between}}
+
+.n8n-export-row{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:12px 0 20px}
+.n8n-export-row .btn{min-height:44px}
+.n8n-export-row span{font-size:11px;color:#718096;flex:1;min-width:190px}
+@media(max-width:520px){.n8n-export-row .btn{width:100%}}
 </style></head><body data-view="overview"><button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="Close navigation menu" tabindex="-1"></button><div class="layout">
 <aside id="sidebar" aria-label="LoveSpain navigation">
   <div class="sidebar-top"><div class="brand-wrap"><div class="brand">love<i>spain</i>.</div><small>AI MARKETING & GROWTH</small></div><button class="mobile-close" id="menu-close" type="button" aria-label="Close menu" title="Close menu">×</button></div>
@@ -235,7 +240,7 @@ body[data-view="history"] .queue{display:block}
       </div>
     </section>
     <section class="section-panel" id="workspace-panel" aria-label="Content approvals"><div class="workspace"><section class="queue"><div class="queue-head"><b>Development queue</b><input id="search" placeholder="Search developments…" aria-label="Search developments"><select id="filter" aria-label="Filter status"><option value="all">All statuses</option><option value="pending">Awaiting review</option><option value="approved">Approved</option><option value="revision_requested">Changes requested</option><option value="rejected">Rejected</option></select></div><div id="queue"></div></section><section class="detail" id="detail"></section></div></section>
-    <section class="section-panel" id="feature-panel" aria-label="Upcoming workspace module"><div class="feature-panel"><div class="feature-banner"><div class="eyebrow" style="color:#9fc2f5">CONNECTED PLATFORM ROADMAP</div><h2 id="feature-title">Workspace module</h2><p id="feature-description"></p></div><div class="feature-content"><span class="feature-state">PLANNED INTEGRATION · NOT YET CONNECTED</span><h3>How this will work</h3><p id="feature-detail"></p><div id="n8n-panel" class="n8n-panel" hidden><div class="n8n-panel-head"><div><h3>n8n Cloud connection</h3><p id="n8n-status" role="status" aria-live="polite">Connection not tested yet. Sign in to check your live workflows.</p></div><button class="btn primary" id="n8n-check" type="button">Check connection</button></div><div id="n8n-results" hidden><div class="n8n-summary" id="n8n-summary"></div><h3>Workflows</h3><div id="n8n-workflows" class="n8n-list"></div><section id="n8n-inspector" class="n8n-inspector" hidden aria-label="Selected workflow inspection"><div class="n8n-inspector-head"><div><h3 id="n8n-inspector-title">Workflow inspection</h3><p id="n8n-inspector-status" role="status">Read-only node and connection details</p></div><button type="button" class="btn" id="n8n-export" disabled>Download diagnostic JSON</button></div><div id="n8n-inspector-content"></div><p class="n8n-footnote">Diagnostic metadata only: node parameters, credential references and secret values are excluded. This file is not a restorable backup.</p></section><h3>Recent executions</h3><div id="n8n-executions" class="n8n-list"></div><p class="n8n-footnote">Read-only connection test. Workflow editing and execution controls will be enabled only after backups and separate administrative authorization are in place.</p></div></div><div class="feature-steps"><div class="feature-step"><strong>1. Preserve the working system</strong><p>Keep the existing approval service and n8n workflow contracts unchanged.</p></div><div class="feature-step"><strong>2. Connect and verify the module</strong><p>Add authenticated data access, permissions, real status reporting and end-to-end tests before enabling controls.</p></div></div><button class="btn primary" id="feature-approvals">Go to working approvals</button></div></div></section>
+    <section class="section-panel" id="feature-panel" aria-label="Upcoming workspace module"><div class="feature-panel"><div class="feature-banner"><div class="eyebrow" style="color:#9fc2f5">CONNECTED PLATFORM ROADMAP</div><h2 id="feature-title">Workspace module</h2><p id="feature-description"></p></div><div class="feature-content"><span class="feature-state">PLANNED INTEGRATION · NOT YET CONNECTED</span><h3>How this will work</h3><p id="feature-detail"></p><div id="n8n-panel" class="n8n-panel" hidden><div class="n8n-panel-head"><div><h3>n8n Cloud connection</h3><p id="n8n-status" role="status" aria-live="polite">Connection not tested yet. Sign in to check your live workflows.</p></div><button class="btn primary" id="n8n-check" type="button">Check connection</button></div><div id="n8n-results" hidden><div class="n8n-summary" id="n8n-summary"></div><div class="n8n-export-row"><button class="btn primary" type="button" id="n8n-export-all">Download complete system map</button><span id="n8n-export-progress" role="status" aria-live="polite">One diagnostic file for all accessible workflows. No secrets or node parameters.</span></div><h3>Workflows</h3><div id="n8n-workflows" class="n8n-list"></div><section id="n8n-inspector" class="n8n-inspector" hidden aria-label="Selected workflow inspection"><div class="n8n-inspector-head"><div><h3 id="n8n-inspector-title">Workflow inspection</h3><p id="n8n-inspector-status" role="status">Read-only node and connection details</p></div><button type="button" class="btn" id="n8n-export" disabled>Download diagnostic JSON</button></div><div id="n8n-inspector-content"></div><p class="n8n-footnote">Diagnostic metadata only: node parameters, credential references and secret values are excluded. This file is not a restorable backup.</p></section><h3>Recent executions</h3><div id="n8n-executions" class="n8n-list"></div><p class="n8n-footnote">Read-only connection test. Workflow editing and execution controls will be enabled only after backups and separate administrative authorization are in place.</p></div></div><div class="feature-steps"><div class="feature-step"><strong>1. Preserve the working system</strong><p>Keep the existing approval service and n8n workflow contracts unchanged.</p></div><div class="feature-step"><strong>2. Connect and verify the module</strong><p>Add authenticated data access, permissions, real status reporting and end-to-end tests before enabling controls.</p></div></div><button class="btn primary" id="feature-approvals">Go to working approvals</button></div></div></section>
   </div>
 </main></div><dialog id="auth"><h2>Welcome back, Bent.</h2><p>Sign in to review live campaigns.</p><form id="authform"><input type="password" id="password" placeholder="Reviewer password" required autocomplete="current-password" aria-label="Reviewer password"><div id="autherror" class="error"></div><div class="actions"><button class="btn primary">Sign in</button><button type="button" class="btn" id="cancel">Cancel</button></div></form></dialog><div class="toast" id="toast" hidden role="status"></div><script id="mobile-navigation-script">
 /* Independent menu controller: works even if the campaign dashboard script encounters an error. */
@@ -335,7 +340,41 @@ async function load(){try{const r=await api('list');demo=false;csrf=r.csrf;rows=
 
 
 
-let n8nInspection=null;
+let n8nInspection=null,n8nWorkflows=[];
+
+async function exportN8nSystemMap(){
+ const button=$('#n8n-export-all'),progress=$('#n8n-export-progress');
+ if(!n8nWorkflows.length){progress.textContent='No workflows loaded. Run Check connection first.';return}
+ button.disabled=true;button.textContent='Preparing system map…';
+ const items=n8nWorkflows.slice();
+ const inspections=new Array(items.length);
+ let index=0,completed=0;
+ async function worker(){
+  while(index<items.length){
+   const i=index++,w=items[i];
+   try{
+    const result=await api('n8n_inspect&id='+encodeURIComponent(w.id));
+    inspections[i]={workflowId:w.id,inspection:result.inspection};
+   }catch(e){inspections[i]={workflowId:w.id,name:w.name,error:e.message}}
+   completed++;
+   progress.textContent='Inspected '+completed+' of '+items.length+' workflows…';
+  }
+ }
+ try{
+  await Promise.all(Array.from({length:Math.min(2,items.length)},()=>worker()));
+  const report={kind:'LoveSpain n8n system map — sanitized diagnostic, not a restorable backup',exportedAt:new Date().toISOString(),workflowCount:items.length,workflows:inspections};
+  const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;link.download='lovespain-n8n-system-map.json';
+  document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  const failed=inspections.filter(x=>x.error).length;
+  progress.textContent='System map downloaded: '+(items.length-failed)+' workflows inspected'+(failed?' · '+failed+' unavailable':'')+'. This is not a restorable backup.';
+ }catch(e){progress.textContent='Export failed: '+e.message}
+ finally{button.disabled=false;button.textContent='Download complete system map'}
+}
+$('#n8n-export-all').onclick=exportN8nSystemMap;
 async function inspectN8nWorkflow(id,button){
  if(demo)return;
  const panel=$('#n8n-inspector');
@@ -388,6 +427,7 @@ async function checkN8n(){
   const workflows=await api('n8n_workflows');
   const executions=await api('n8n_executions').catch(()=>null);
   const list=workflows.workflows||[],runs=executions?.executions||[];
+  n8nWorkflows=list;
   $('#n8n-status').textContent=executions?'Connected to n8n Cloud. Live workflow information loaded.':'Connected to n8n Cloud. Workflow access confirmed; execution history unavailable for this API key.';
   $('#n8n-summary').textContent=list.length+' workflows found'+(workflows.hasMore?' (first 100 shown)':'')+' · '+list.filter(w=>w.active).length+' active · '+runs.length+' recent executions';
   $('#n8n-workflows').innerHTML=list.map(w=>'<div class="n8n-item"><span><strong>'+esc(w.name)+'</strong><small>ID: '+esc(w.id)+'</small></span><div class="n8n-workflow-actions"><span class="n8n-pill '+(w.active?'on':'')+'">'+(w.active?'Active':'Inactive')+'</span><button class="btn" type="button" data-inspect="'+esc(w.id)+'" aria-label="Inspect workflow '+esc(w.name)+'">Inspect</button></div></div>').join('')||'<p>No workflows returned by n8n.</p>';
