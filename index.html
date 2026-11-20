@@ -106,7 +106,7 @@ body[data-view="history"] .queue{display:block}
 @media(max-width:900px){
  .layout{display:block;min-height:100dvh}
  aside{position:fixed;top:0;left:0;bottom:0;z-index:102;width:min(310px,86vw);height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;background:var(--navy);padding:22px 16px 28px;display:block;transform:translateX(-105%);visibility:hidden;transition:transform .22s ease,visibility .22s ease;box-shadow:16px 0 50px rgba(9,25,49,.22)}
- body.menu-open aside{transform:translateX(0);visibility:visible}
+ body.menu-open aside,body.menu-open .layout > aside{transform:translateX(0);visibility:visible;pointer-events:auto}
  .sidebar-top{align-items:center}
  .brand-wrap{padding:0 8px 18px;border-bottom:0}
  .mobile-close{display:flex;background:#20395c;border-color:#385270;color:#e6eefc;font-size:29px;line-height:1}
@@ -203,11 +203,49 @@ body[data-view="history"] .queue{display:block}
     <section class="section-panel" id="workspace-panel" aria-label="Content approvals"><div class="workspace"><section class="queue"><div class="queue-head"><b>Development queue</b><input id="search" placeholder="Search developments…" aria-label="Search developments"><select id="filter" aria-label="Filter status"><option value="all">All statuses</option><option value="pending">Awaiting review</option><option value="approved">Approved</option><option value="revision_requested">Changes requested</option><option value="rejected">Rejected</option></select></div><div id="queue"></div></section><section class="detail" id="detail"></section></div></section>
     <section class="section-panel" id="feature-panel" aria-label="Upcoming workspace module"><div class="feature-panel"><div class="feature-banner"><div class="eyebrow" style="color:#9fc2f5">CONNECTED PLATFORM ROADMAP</div><h2 id="feature-title">Workspace module</h2><p id="feature-description"></p></div><div class="feature-content"><span class="feature-state">PLANNED INTEGRATION · NOT YET CONNECTED</span><h3>How this will work</h3><p id="feature-detail"></p><div class="feature-steps"><div class="feature-step"><strong>1. Preserve the working system</strong><p>Keep the existing approval service and n8n workflow contracts unchanged.</p></div><div class="feature-step"><strong>2. Connect and verify the module</strong><p>Add authenticated data access, permissions, real status reporting and end-to-end tests before enabling controls.</p></div></div><button class="btn primary" id="feature-approvals">Go to working approvals</button></div></div></section>
   </div>
-</main></div><dialog id="auth"><h2>Welcome back, Bent.</h2><p>Sign in to review live campaigns.</p><form id="authform"><input type="password" id="password" placeholder="Reviewer password" required autocomplete="current-password" aria-label="Reviewer password"><div id="autherror" class="error"></div><div class="actions"><button class="btn primary">Sign in</button><button type="button" class="btn" id="cancel">Cancel</button></div></form></dialog><div class="toast" id="toast" hidden role="status"></div><script>
+</main></div><dialog id="auth"><h2>Welcome back, Bent.</h2><p>Sign in to review live campaigns.</p><form id="authform"><input type="password" id="password" placeholder="Reviewer password" required autocomplete="current-password" aria-label="Reviewer password"><div id="autherror" class="error"></div><div class="actions"><button class="btn primary">Sign in</button><button type="button" class="btn" id="cancel">Cancel</button></div></form></dialog><div class="toast" id="toast" hidden role="status"></div><script id="mobile-navigation-script">
+/* Independent menu controller: works even if the campaign dashboard script encounters an error. */
+(function(){
+  var toggle=document.getElementById('menu-toggle');
+  var sidebar=document.getElementById('sidebar');
+  var closeButton=document.getElementById('menu-close');
+  var backdrop=document.getElementById('sidebar-backdrop');
+  if(!toggle||!sidebar||!closeButton||!backdrop)return;
+  function mobile(){return window.innerWidth<=900}
+  function isOpen(){return document.body.classList.contains('menu-open')}
+  function setOpen(open,restoreFocus){
+    if(open&&!mobile())return;
+    document.body.classList.toggle('menu-open',!!open);
+    toggle.setAttribute('aria-expanded',String(!!open));
+    toggle.setAttribute('aria-label',open?'Close navigation menu':'Open navigation menu');
+    if(open){closeButton.focus()}
+    else if(restoreFocus&&mobile()){toggle.focus()}
+  }
+  toggle.addEventListener('click',function(e){e.preventDefault();setOpen(!isOpen(),true)});
+  closeButton.addEventListener('click',function(){setOpen(false,true)});
+  backdrop.addEventListener('click',function(){setOpen(false,true)});
+  sidebar.addEventListener('click',function(e){
+    var target=e.target.closest('button[data-view]');
+    if(target&&isOpen())setOpen(false,false);
+  });
+  document.addEventListener('keydown',function(e){
+    if(!isOpen())return;
+    if(e.key==='Escape'){e.preventDefault();setOpen(false,true);return}
+    if(e.key!=='Tab')return;
+    var items=Array.prototype.filter.call(sidebar.querySelectorAll('button:not(:disabled),a[href]'),function(el){return el.getClientRects().length>0});
+    if(!items.length)return;
+    var first=items[0],last=items[items.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+  });
+  window.addEventListener('resize',function(){if(!mobile()&&isOpen())setOpen(false,false)});
+  window.LoveSpainMenu={close:function(restoreFocus){setOpen(false,restoreFocus!==false)},open:function(){setOpen(true,true)}};
+})();
+</script><script>
 const $=s=>document.querySelector(s),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safe=v=>{try{const u=new URL(v);return u.protocol==='https:'?u.href:''}catch{return ''}};
 const sample=[{id:'demo-torrevieja',development_id:'torrevieja-demo',name:'Living in Torrevieja',revision:1,content_hash:'demo-version-1',updated_at:new Date().toISOString(),history:[],assets:[{id:'copy',type:'copy',title:'Campaign concept & property copy',text:'A new chapter on the Spanish coast.\n\nDiscover Living in Torrevieja with LoveSpain. Request the latest development information and speak with our team about your next move.\n\nCTA: Discover the development →\n\nIllustrative draft only. Property claims require verification.',status:'pending'},{id:'video',type:'video',title:'Branded promotional video',text:'Review the generated MP4, on-screen text, music and closing call to action.',url:'',status:'pending'},{id:'landing',type:'landing',title:'Property landing page',text:'Review the property page, enquiry form and booking calendar.',url:'',status:'pending'},{id:'social',type:'social',title:'Social post · Facebook & Instagram',text:'Could your next chapter begin in Spain?\nExplore Living in Torrevieja with LoveSpain. Request more information and discover the possibilities.\n\n[Property landing-page URL added by workflow]\n#LoveSpain #PropertyInSpain\n\nSample copy — not scheduled or published.',status:'pending'},{id:'images',type:'images',title:'Property image selection',url:'',text:'Verified property photographs appear here when the workflow supplies them.',status:'pending'}]}];
-let demo=true,rows,selected,tab='copy',view='overview',csrf='',busy=false;try{rows=JSON.parse(localStorage.getItem('ls-approval-demo-v1'))||structuredClone(sample)}catch{rows=structuredClone(sample)}selected=rows[0]?.id;
+let demo=true,rows,selected,tab='copy',view='overview',csrf='',busy=false;try{rows=JSON.parse(localStorage.getItem('ls-approval-demo-v1'))||JSON.parse(JSON.stringify(sample))}catch{rows=JSON.parse(JSON.stringify(sample))}if(!Array.isArray(rows))rows=JSON.parse(JSON.stringify(sample));selected=rows[0]?.id;
 const status=c=>c.assets.some(a=>a.status==='rejected')?'rejected':c.assets.some(a=>a.status==='revision_requested')?'revision_requested':c.assets.every(a=>a.status==='approved')?'approved':'pending';const label=s=>({pending:'Awaiting review',revision_requested:'Changes requested',approved:'Approved',rejected:'Rejected'}[s]||s);
 function toast(s){$('#toast').textContent=s;$('#toast').hidden=false;setTimeout(()=>$('#toast').hidden=true,5000)}
 async function api(action,body){const r=await fetch('/api/index?action='+action,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:body?JSON.stringify(body):undefined});const data=await r.json();if(!r.ok)throw new Error(data.error||'Request failed');return data}
@@ -242,7 +280,7 @@ function syncView(){
  document.querySelectorAll('[data-view]').forEach(b=>{const active=b.dataset.view===view;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
  if(modules[view]){$('#feature-title').textContent=modules[view][0];$('#feature-description').textContent=info[3];$('#feature-detail').textContent=modules[view][1];}
 }
-function navigate(next){const wasOpen=document.body.classList.contains('menu-open');view=next;syncView();render();closeMobileMenu(false);if(wasOpen){const heading=$('#page-title');heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true})}window.scrollTo({top:0,behavior:'smooth'});}
+function navigate(next){const wasOpen=document.body.classList.contains('menu-open');view=next;syncView();render();window.LoveSpainMenu.close(false);if(wasOpen){const heading=$('#page-title');heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true})}window.scrollTo({top:0,behavior:'smooth'});}
 function renderOverview(){
  const recent=[...rows].sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0)).slice(0,5);
  $('#recent-campaigns').innerHTML=recent.map(c=>'<button class="overview-row" data-campaign="'+esc(c.id)+'"><span><strong>'+esc(c.name)+'</strong><small>'+esc(c.assets.length)+' assets · Version '+esc(c.revision)+'</small></span><span class="badge '+esc(status(c))+'">'+esc(label(status(c)))+'</span></button>').join('')||'<div class="overview-empty">No campaigns yet. New n8n submissions will appear here.</div>';
@@ -259,33 +297,5 @@ $('#detail').innerHTML='<div class="detail-head"><div><h2>'+esc(c.name)+'</h2><p
 async function decide(c,assetId,s){if(busy)return;const note=$('#note')?.value.trim()||'';if(s!=='approved'&&!note){toast('Please add a reason for the team.');return}busy=true;try{if(demo){const at=new Date().toISOString();c.assets.forEach(a=>{if(assetId==='all'||a.id===assetId){a.status=s;a.note=note;a.decidedAt=at;a.reviewer='Demo reviewer'}});c.history.push({at,actor:'Demo reviewer',action:s,assetId,note});c.revision++;localStorage.setItem('ls-approval-demo-v1',JSON.stringify(rows));toast('Demo decision saved in this browser. Nothing published.')}else{const r=await api('decision',{id:c.id,revision:c.revision,assetId,status:s,note});rows=rows.map(x=>x.id===c.id?r.campaign:x);toast('Decision saved. Publishing remains a separate workflow.')}render()}catch(e){toast(e.message)}finally{busy=false}}
 async function load(){try{const r=await api('list');demo=false;csrf=r.csrf;rows=r.campaigns;selected=rows.some(c=>c.id===selected)?selected:rows[0]?.id;$('#mode').textContent='LIVE';$('#reviewer').textContent=r.reviewer;$('#notice').textContent='Live review workspace · Decisions are recorded against the exact content version. Publishing runs separately through your verified workflow.';$('#login').textContent='Sign out';render()}catch(e){toast(e.message)}}
 
-function openMobileMenu(){
- if(!window.matchMedia('(max-width:900px)').matches)return;
- document.body.classList.add('menu-open');
- $('#menu-toggle').setAttribute('aria-expanded','true');
- $('#menu-toggle').setAttribute('aria-label','Close navigation menu');
- $('#menu-close').focus();
-}
-function closeMobileMenu(restoreFocus=true){
- const wasOpen=document.body.classList.contains('menu-open');
- document.body.classList.remove('menu-open');
- $('#menu-toggle').setAttribute('aria-expanded','false');
- $('#menu-toggle').setAttribute('aria-label','Open navigation menu');
- if(wasOpen&&restoreFocus&&window.matchMedia('(max-width:900px)').matches)$('#menu-toggle').focus();
-}
-$('#menu-toggle').onclick=()=>document.body.classList.contains('menu-open')?closeMobileMenu():openMobileMenu();
-$('#menu-close').onclick=()=>closeMobileMenu();
-$('#sidebar-backdrop').onclick=()=>closeMobileMenu();
-document.addEventListener('keydown',e=>{
- if(e.key==='Escape'&&document.body.classList.contains('menu-open')){e.preventDefault();closeMobileMenu();}
- if(e.key!=='Tab'||!document.body.classList.contains('menu-open'))return;
- const els=[...$('#sidebar').querySelectorAll('button:not(:disabled),a[href]')].filter(el=>el.getClientRects().length);
- if(!els.length)return;
- const first=els[0],last=els[els.length-1];
- if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
- else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
-});
-window.addEventListener('resize',()=>{if(window.innerWidth>900)closeMobileMenu(false)});
-
-$('#search').oninput=render;$('#filter').onchange=render;$('#refresh').onclick=()=>demo?render():load();$('#login').onclick=async()=>{if(!demo){await api('logout',{});location.reload()}else $('#auth').showModal()};$('#connect').onclick=()=>{closeMobileMenu(false);$('#auth').showModal()};$('#cancel').onclick=()=>$('#auth').close();$('#authform').onsubmit=async e=>{e.preventDefault();try{await api('login',{password:$('#password').value});$('#password').value='';$('#auth').close();await load()}catch(e){$('#autherror').textContent=e.message}};document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>navigate(b.dataset.view));document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>navigate(b.dataset.go));$('#open-approvals').onclick=()=>navigate('review');$('#feature-approvals').onclick=()=>navigate('review');render();fetch('/api/index?action=list').then(r=>{if(r.ok)load()}).catch(()=>{});
+$('#search').oninput=render;$('#filter').onchange=render;$('#refresh').onclick=()=>demo?render():load();$('#login').onclick=async()=>{if(!demo){await api('logout',{});location.reload()}else $('#auth').showModal()};$('#connect').onclick=()=>{window.LoveSpainMenu.close(false);$('#auth').showModal()};$('#cancel').onclick=()=>$('#auth').close();$('#authform').onsubmit=async e=>{e.preventDefault();try{await api('login',{password:$('#password').value});$('#password').value='';$('#auth').close();await load()}catch(e){$('#autherror').textContent=e.message}};document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>navigate(b.dataset.view));document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>navigate(b.dataset.go));$('#open-approvals').onclick=()=>navigate('review');$('#feature-approvals').onclick=()=>navigate('review');render();fetch('/api/index?action=list').then(r=>{if(r.ok)load()}).catch(()=>{});
 </script></body></html>
