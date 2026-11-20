@@ -56,3 +56,30 @@ The dashboard's live service connections depend on the specific Vercel deploymen
 A history record is an application audit trail, not tamper-proof storage against database administrators. Media URLs are rendered directly in the reviewer's browser; external providers may require authentication and signed links may expire. Landing pages open in a new tab so Vercel protection can remain in force. Use HTTPS hosting. No external scripts, fonts or analytics are loaded by the dashboard itself.
 
 Run npm test for API and content checks. A live end-to-end test is still required after credentials and URLs are configured: ingest real Torrevieja assets, sign in, request changes, ingest a revision, reject stale approval, approve all valid assets, read authoritative evidence, run Workflow 4 and confirm its hold behavior before connecting publishing.
+
+
+## Phase 4 secure n8n workflow release manager
+
+The Automations & Tools module includes a **separate, administrator-authorized** deployment manager for four reviewed Phase 4 workflow IDs. It uses the existing server-side \`N8N_API_KEY\` and \`N8N_BASE_URL\`; the API key is never exposed to the browser.
+
+### One-time Vercel production environment configuration
+
+Set these in **Vercel → Project → Settings → Environment Variables**, for Production (and redeploy):
+
+- \`N8N_DEPLOY_ENABLED=true\` — deployment is disabled by default.
+- \`N8N_DEPLOY_PASSWORD=<a unique, randomly generated 24+ character secret>\` — **must be separate from \`REVIEW_PASSWORD\`**. Never put this value in GitHub or chat.
+
+The reviewer must first sign in to the dashboard, then supply the administrator deployment password. All write requests require the signed reviewer session, CSRF token, same-origin protection, and separate administrator password.
+
+### Deployment procedure
+
+1. Download the private \`LoveSpain_Phase4_Deploy_Bundle.json\` provided in the conversation. **Do not commit this bundle or the backups to public GitHub.**
+2. Dashboard → **Automations & Tools → Phase 4 · Secure workflow release**. Upload the JSON bundle.
+3. Select a workflow. Click **Prepare & check live version**. The server compares the full current workflow definition to the user's original export and validates the approved candidate fingerprint, stable node identities and credential references. If the live workflow has changed, the server refuses the deployment.
+4. Click **Download live backup**. Keep the complete n8n JSON securely, and verify it was downloaded. Check the confirmation box.
+5. Click **Apply this workflow update** and confirm. The backend checks the live workflow again, then sends a single n8n \`PUT /api/v1/workflows/:id\` request with only \`name\`, \`nodes\`, \`connections\`, and \`settings\`. It does **not** activate, execute, or publish workflows.
+6. Verify the result in n8n and repeat for the other three candidates. A live integration test and credential check are still required after deployment.
+
+**Safety:** the four approved candidate SHA-256 fingerprints are fixed in \`api/n8n-management.js\`; arbitrary workflow JSON and other IDs are refused. The live workflow must match the provided original export before it can be replaced. Existing live activation state is preserved. The browser must download the live backup before Apply becomes available. There is no bulk unattended deployment, no automatic rollback, and no paid Creatomate or Vercel run. Workflow JSON and downloaded backups include credential *references* and internal configurations and should be treated as sensitive. If n8n rejects the update, no success is claimed.
+
+**Limitations:** the dashboard does not give this ChatGPT conversation direct access to n8n; the user performs the administrator-authorized deployment from their browser. The hardening candidates intentionally block new paid renders and preview deployments unless trusted authorization flags are supplied. This is a guarded release mechanism, not proof of end-to-end production readiness.
