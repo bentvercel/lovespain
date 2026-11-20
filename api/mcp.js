@@ -78,7 +78,8 @@ async function recordOAuthStage(stage){
  // Never record form fields, passwords, client IDs, redirect URLs, codes or tokens.
  try{await audit('mcp_oauth_authorize',null,null,{stage});}catch{}
 }
-function authorizationError(res,status,message){
+function authorizationError(res,status,message,req){
+ if((req?.headers?.accept||'').includes('application/json'))return json(res,status,{error:message});
  res.statusCode=status;
  res.setHeader('Content-Type','text/html; charset=utf-8');
  res.setHeader('Cache-Control','no-store');
@@ -247,7 +248,7 @@ async function oauth(req,res,mode,o){
   const p=req.method==='GET'?Object.fromEntries(new URL(req.url,'http://local').searchParams):formBody(req);
   const c=getClient(p.client_id);
   if(!c||!c.redirect_uris.includes(p.redirect_uri)||p.response_type!=='code'||p.code_challenge_method!=='S256'||!/^[A-Za-z0-9_-]{43,128}$/.test(p.code_challenge||'')||typeof p.state!=='string'||p.state.length<8||p.state.length>512||p.scope!=='n8n:manage'){
-   if(req.method==='POST'){await recordOAuthStage('invalid_request');return authorizationError(res,400,'The authorization form was invalid or expired.');}
+   if(req.method==='POST'){await recordOAuthStage('invalid_request');return authorizationError(res,400,'The authorization form was invalid or expired.',req);}
    return json(res,400,{error:'invalid_request'});
   }
   if(req.method==='GET'){
@@ -284,11 +285,11 @@ form.addEventListener('submit',async event=>{
   }
   if(req.headers.origin&&req.headers.origin!==o){
    await recordOAuthStage('invalid_origin');
-   return authorizationError(res,403,'The authorization form came from an unexpected origin.');
+   return authorizationError(res,403,'The authorization form came from an unexpected origin.',req);
   }
   if(!same(p.password,process.env.N8N_ADMIN_PASSWORD)){
    await recordOAuthStage('password_rejected');
-   return authorizationError(res,401,'The administrator password was not accepted.');
+   return authorizationError(res,401,'The administrator password was not accepted.',req);
   }
   await recordOAuthStage('password_accepted');
   const code=bytes(32);
@@ -296,7 +297,7 @@ form.addEventListener('submit',async event=>{
    await store('ls_mcp_auth_codes','','POST',{code_hash:hash(code),client_id:p.client_id,redirect_uri:p.redirect_uri,challenge:p.code_challenge,expires_at:new Date(Date.now()+300000).toISOString()});
   }catch{
    await recordOAuthStage('storage_failed');
-   return authorizationError(res,503,'The authorization database could not save the connection. Check the secure server diagnostics.');
+   return authorizationError(res,503,'The authorization database could not save the connection. Check the secure server diagnostics.',req);
   }
   await recordOAuthStage('code_issued');
   const target=new URL(p.redirect_uri);target.searchParams.set('code',code);target.searchParams.set('state',p.state);
