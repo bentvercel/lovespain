@@ -56,6 +56,46 @@ if(action==='verified'&&method==='GET'){
 }
 const user=session(req);if(!user)return send(res,401,{error:'Sign in required'});
 if(action==='logout'&&method==='POST'){res.setHeader('Set-Cookie','ls_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(res,200,{ok:true});}
+if(action==='n8n_inspect'&&method==='GET'){
+ const id=new URL(req.url,'http://local').searchParams.get('id')||'';
+ if(!/^[A-Za-z0-9_-]{1,100}$/.test(id))return send(res,400,{error:'Invalid workflow ID.'});
+ const result=await n8nGet('workflows/'+id);
+ if(result.error)return send(res,result.status,{error:result.error});
+ const w=result.data?.data&&typeof result.data.data==='object'?result.data.data:result.data;
+ if(!w||!Array.isArray(w.nodes))return send(res,502,{error:'n8n returned an unexpected workflow format.'});
+ // Deliberately exclude parameters, credentials, static data, pinned data, webhook URLs and execution payloads.
+ const nodes=w.nodes.slice(0,300).map(n=>({
+  id:String(n.id||'').slice(0,120),name:String(n.name||'Unnamed node').slice(0,200),
+  type:String(n.type||'unknown').slice(0,200),disabled:!!n.disabled,
+  typeVersion:Number.isFinite(n.typeVersion)?n.typeVersion:null
+ }));
+ const connections=[];
+ const all=w.connections&&typeof w.connections==='object'?w.connections:{};
+ for(const [from,groups] of Object.entries(all)){
+  if(!groups||typeof groups!=='object')continue;
+  for(const [output,ports] of Object.entries(groups)){
+   if(!Array.isArray(ports))continue;
+   for(let portIndex=0;portIndex<ports.length;portIndex++){
+    if(!Array.isArray(ports[portIndex]))continue;
+    for(const edge of ports[portIndex]){
+     if(connections.length>=1000)break;
+     if(edge&&typeof edge.node==='string')connections.push({
+      from:String(from).slice(0,200),to:edge.node.slice(0,200),
+      output:String(output).slice(0,60),outputIndex:portIndex,
+      input:String(edge.type||'main').slice(0,60),inputIndex:Number.isInteger(edge.index)?edge.index:0
+     });
+    }
+   }
+  }
+ }
+ return send(res,200,{inspection:{
+  id:String(w.id||id),name:String(w.name||'Untitled workflow').slice(0,200),
+  active:!!w.active,updatedAt:w.updatedAt||null,
+  nodeCount:w.nodes.length,nodes,connections,
+  truncated:w.nodes.length>nodes.length||connections.length>=1000,
+  scope:'Diagnostic metadata only. This is NOT a restorable workflow backup.'
+ }});
+}
 if(method==='GET'&&['n8n_status','n8n_workflows','n8n_executions'].includes(action)){
  const resource=action==='n8n_executions'?'executions':'workflows';
  const query=action==='n8n_status'?'?limit=1':action==='n8n_executions'?'?limit=20&includeData=false':'?limit=100';
