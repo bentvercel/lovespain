@@ -98,7 +98,7 @@ if(action==='n8n_inspect'&&method==='GET'){
 }
 if(method==='GET'&&['n8n_status','n8n_workflows','n8n_executions'].includes(action)){
  const resource=action==='n8n_executions'?'executions':'workflows';
- const query=action==='n8n_status'?'?limit=1':action==='n8n_executions'?'?limit=20&includeData=false':'?limit=100';
+ const query=action==='n8n_status'?'?limit=1':action==='n8n_executions'?'?limit=100&includeData=false':'?limit=100';
  const result=await n8nGet(resource,query);
  if(result.error)return send(res,result.status,{connected:false,error:result.error});
  if(action==='n8n_status')return send(res,200,{connected:true,configured:true});
