@@ -210,6 +210,14 @@ body[data-view="history"] .queue{display:block}
 .n8n-pill.in-progress{background:#fff5d9;color:#946300}
 .n8n-item.n8n-failure{border-color:#efc7c1}
 @media(max-width:600px){.n8n-execution-head{align-items:stretch;flex-direction:column}.n8n-execution-head .btn{width:100%}}
+
+.n8n-release{border:1px solid #d2ddd6;border-radius:12px;background:#f8fbf9;padding:20px;margin-top:24px;display:grid;gap:10px;max-width:900px}
+.n8n-release h3{margin:0}.n8n-release p{font-size:12px;margin:0 0 6px}
+.n8n-release label{font-weight:600;font-size:12px}
+.n8n-release input[type=file],.n8n-release input[type=password],.n8n-release select{max-width:100%;min-width:0;padding:12px;border:1px solid #c7d5cd;border-radius:7px;background:white}
+.n8n-release-actions{display:flex;flex-wrap:wrap;gap:10px}.n8n-release-confirm{display:flex;align-items:start;gap:10px;line-height:1.5}.n8n-release-confirm input{margin-top:3px}
+.n8n-release #n8n-release-apply{justify-self:start}.n8n-release #n8n-release-status{font-weight:600;overflow-wrap:anywhere}
+@media(max-width:600px){.n8n-release{padding:14px}.n8n-release-actions{display:grid}.n8n-release #n8n-release-apply{width:100%}}
 </style></head><body data-view="overview"><button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="Close navigation menu" tabindex="-1"></button><div class="layout">
 <aside id="sidebar" aria-label="LoveSpain navigation">
   <div class="sidebar-top"><div class="brand-wrap"><div class="brand">love<i>spain</i>.</div><small>AI MARKETING & GROWTH</small></div><button class="mobile-close" id="menu-close" type="button" aria-label="Close menu" title="Close menu">×</button></div>
@@ -250,7 +258,24 @@ body[data-view="history"] .queue{display:block}
       </div>
     </section>
     <section class="section-panel" id="workspace-panel" aria-label="Content approvals"><div class="workspace"><section class="queue"><div class="queue-head"><b>Development queue</b><input id="search" placeholder="Search developments…" aria-label="Search developments"><select id="filter" aria-label="Filter status"><option value="all">All statuses</option><option value="pending">Awaiting review</option><option value="approved">Approved</option><option value="revision_requested">Changes requested</option><option value="rejected">Rejected</option></select></div><div id="queue"></div></section><section class="detail" id="detail"></section></div></section>
-    <section class="section-panel" id="feature-panel" aria-label="Upcoming workspace module"><div class="feature-panel"><div class="feature-banner"><div class="eyebrow" style="color:#9fc2f5">CONNECTED PLATFORM ROADMAP</div><h2 id="feature-title">Workspace module</h2><p id="feature-description"></p></div><div class="feature-content"><span class="feature-state">PLANNED INTEGRATION · NOT YET CONNECTED</span><h3>How this will work</h3><p id="feature-detail"></p><div id="n8n-panel" class="n8n-panel" hidden><div class="n8n-panel-head"><div><h3>n8n Cloud connection</h3><p id="n8n-status" role="status" aria-live="polite">Connection not tested yet. Sign in to check your live workflows.</p></div><button class="btn primary" id="n8n-check" type="button">Check connection</button></div><div id="n8n-results" hidden><div class="n8n-summary" id="n8n-summary"></div><div class="n8n-export-row"><button class="btn primary" type="button" id="n8n-export-all">Download complete system map</button><span id="n8n-export-progress" role="status" aria-live="polite">One diagnostic file for all accessible workflows. No secrets or node parameters.</span></div><h3>Workflows</h3><div id="n8n-workflows" class="n8n-list"></div><section id="n8n-inspector" class="n8n-inspector" hidden aria-label="Selected workflow inspection"><div class="n8n-inspector-head"><div><h3 id="n8n-inspector-title">Workflow inspection</h3><p id="n8n-inspector-status" role="status">Read-only node and connection details</p></div><button type="button" class="btn" id="n8n-export" disabled>Download diagnostic JSON</button></div><div id="n8n-inspector-content"></div><p class="n8n-footnote">Diagnostic metadata only: node parameters, credential references and secret values are excluded. This file is not a restorable backup.</p></section><div class="n8n-execution-head"><div><h3>Execution health</h3><p id="n8n-health-summary" role="status">Checks the latest 100 executions only, not complete history.</p></div><button class="btn" type="button" id="n8n-errors-only" aria-pressed="false">Show failures only</button></div><div id="n8n-executions" class="n8n-list"></div><p class="n8n-footnote">Read-only connection test. Workflow editing and execution controls will be enabled only after backups and separate administrative authorization are in place.</p></div></div><div class="feature-steps"><div class="feature-step"><strong>1. Preserve the working system</strong><p>Keep the existing approval service and n8n workflow contracts unchanged.</p></div><div class="feature-step"><strong>2. Connect and verify the module</strong><p>Add authenticated data access, permissions, real status reporting and end-to-end tests before enabling controls.</p></div></div><button class="btn primary" id="feature-approvals">Go to working approvals</button></div></div></section>
+    <section class="section-panel" id="feature-panel" aria-label="Upcoming workspace module"><div class="feature-panel"><div class="feature-banner"><div class="eyebrow" style="color:#9fc2f5">CONNECTED PLATFORM ROADMAP</div><h2 id="feature-title">Workspace module</h2><p id="feature-description"></p></div><div class="feature-content"><span class="feature-state">PLANNED INTEGRATION · NOT YET CONNECTED</span><h3>How this will work</h3><p id="feature-detail"></p><div id="n8n-panel" class="n8n-panel" hidden><div class="n8n-panel-head"><div><h3>n8n Cloud connection</h3><p id="n8n-status" role="status" aria-live="polite">Connection not tested yet. Sign in to check your live workflows.</p></div><button class="btn primary" id="n8n-check" type="button">Check connection</button></div><div id="n8n-results" hidden><div class="n8n-summary" id="n8n-summary"></div><div class="n8n-export-row"><button class="btn primary" type="button" id="n8n-export-all">Download complete system map</button><span id="n8n-export-progress" role="status" aria-live="polite">One diagnostic file for all accessible workflows. No secrets or node parameters.</span></div><h3>Workflows</h3><div id="n8n-workflows" class="n8n-list"></div><section id="n8n-inspector" class="n8n-inspector" hidden aria-label="Selected workflow inspection"><div class="n8n-inspector-head"><div><h3 id="n8n-inspector-title">Workflow inspection</h3><p id="n8n-inspector-status" role="status">Read-only node and connection details</p></div><button type="button" class="btn" id="n8n-export" disabled>Download diagnostic JSON</button></div><div id="n8n-inspector-content"></div><p class="n8n-footnote">Diagnostic metadata only: node parameters, credential references and secret values are excluded. This file is not a restorable backup.</p></section><div class="n8n-execution-head"><div><h3>Execution health</h3><p id="n8n-health-summary" role="status">Checks the latest 100 executions only, not complete history.</p></div><button class="btn" type="button" id="n8n-errors-only" aria-pressed="false">Show failures only</button></div><div id="n8n-executions" class="n8n-list"></div><p class="n8n-footnote">Workflow monitoring is read-only. The separate Phase 4 release manager below can update only four pre-approved workflow definitions with administrator authentication and live backups.</p></div>
+<section class="n8n-release" aria-label="Phase 4 release manager">
+ <h3>Phase 4 · Secure workflow release</h3>
+ <p>Import the private LoveSpain Phase 4 deployment bundle. Prepare compares each candidate with the current live workflow and downloads a restorable backup before any update. Changes are never activated or executed automatically.</p>
+ <label for="n8n-release-file">Production-hardening deployment bundle (.json)</label>
+ <input type="file" id="n8n-release-file" accept=".json,application/json"/>
+ <label for="n8n-release-choice">Workflow to update</label>
+ <select id="n8n-release-choice" disabled><option value="">Upload bundle first</option></select>
+ <label for="n8n-release-password">Separate administrator deployment password</label>
+ <input type="password" id="n8n-release-password" autocomplete="off" placeholder="N8N_DEPLOY_PASSWORD in Vercel"/>
+ <div class="n8n-release-actions">
+  <button class="btn" type="button" id="n8n-release-plan" disabled>1. Prepare &amp; check live version</button>
+  <button class="btn" type="button" id="n8n-release-backup" disabled>2. Download live backup</button>
+ </div>
+ <label class="n8n-release-confirm"><input type="checkbox" id="n8n-release-saved" disabled/> I saved the full live backup securely and understand this will replace the selected workflow.</label>
+ <button class="btn primary" type="button" id="n8n-release-apply" disabled>3. Apply this workflow update</button>
+ <p id="n8n-release-status" role="status" aria-live="polite">Deployment is disabled unless the server has a separate administrator password and deployment feature flag.</p>
+</section></div><div class="feature-steps"><div class="feature-step"><strong>1. Preserve the working system</strong><p>Keep the existing approval service and n8n workflow contracts unchanged.</p></div><div class="feature-step"><strong>2. Connect and verify the module</strong><p>Add authenticated data access, permissions, real status reporting and end-to-end tests before enabling controls.</p></div></div><button class="btn primary" id="feature-approvals">Go to working approvals</button></div></div></section>
   </div>
 </main></div><dialog id="auth"><h2>Welcome back, Bent.</h2><p>Sign in to review live campaigns.</p><form id="authform"><input type="password" id="password" placeholder="Reviewer password" required autocomplete="current-password" aria-label="Reviewer password"><div id="autherror" class="error"></div><div class="actions"><button class="btn primary">Sign in</button><button type="button" class="btn" id="cancel">Cancel</button></div></form></dialog><div class="toast" id="toast" hidden role="status"></div><script id="mobile-navigation-script">
 /* Independent menu controller: works even if the campaign dashboard script encounters an error. */
@@ -381,6 +406,62 @@ function renderN8nExecutionHealth(){
  }).join('')||'<p>'+(n8nErrorsOnly?'No failed/crashed executions in this sample.':'No recent executions returned by n8n.')+'</p>';
 }
 $('#n8n-errors-only').onclick=()=>{n8nErrorsOnly=!n8nErrorsOnly;renderN8nExecutionHealth()};
+
+let n8nReleaseBundle=null,n8nReleasePlan=null,n8nReleaseBackupDownloaded=false;
+function releaseEntry(){return n8nReleaseBundle?.workflows.find(x=>x.id===$('#n8n-release-choice').value)}
+function releaseStatus(s){$('#n8n-release-status').textContent=s}
+function resetReleasePlan(){n8nReleasePlan=null;n8nReleaseBackupDownloaded=false;$('#n8n-release-backup').disabled=true;$('#n8n-release-saved').checked=false;$('#n8n-release-saved').disabled=true;$('#n8n-release-apply').disabled=true}
+function downloadReleaseJson(filename,object){
+ const blob=new Blob([JSON.stringify(object,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+$('#n8n-release-file').onchange=async()=>{
+ resetReleasePlan();n8nReleaseBundle=null;$('#n8n-release-choice').disabled=true;$('#n8n-release-plan').disabled=true;
+ const file=$('#n8n-release-file').files?.[0];if(!file)return;
+ try{
+  if(file.size>2000000)throw Error('Bundle is too large.');
+  const bundle=JSON.parse(await file.text());
+  if(bundle.kind!=='lovespain-n8n-deploy-bundle-v1'||!Array.isArray(bundle.workflows)||bundle.workflows.length!==4||bundle.workflows.some(x=>!x.id||!x.original||!x.workflow))throw Error('Not a valid four-workflow LoveSpain release bundle.');
+  n8nReleaseBundle=bundle;
+  $('#n8n-release-choice').innerHTML=bundle.workflows.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.workflow.name)+'</option>').join('');
+  $('#n8n-release-choice').disabled=false;$('#n8n-release-plan').disabled=demo;
+  releaseStatus('Bundle loaded: '+bundle.workflows.length+' candidates. Prepare each workflow separately before applying. No changes made.');
+ }catch(e){releaseStatus('Bundle error: '+e.message)}
+};
+$('#n8n-release-choice').onchange=()=>{resetReleasePlan();releaseStatus('Workflow selected. Prepare to compare with the current live version.')};
+$('#n8n-release-plan').onclick=async()=>{
+ if(demo){releaseStatus('Sign in to the live Dashboard first.');return}
+ const entry=releaseEntry();if(!entry)return;
+ const password=$('#n8n-release-password').value;if(!password){releaseStatus('Enter the separate administrator password.');return}
+ const btn=$('#n8n-release-plan');btn.disabled=true;resetReleasePlan();releaseStatus('Checking the live workflow, version, credentials and approved candidate…');
+ try{
+  const response=await api('n8n_deploy_plan',{id:entry.id,original:entry.original,candidate:entry.workflow,adminPassword:password});
+  n8nReleasePlan=response;$('#n8n-release-backup').disabled=false;
+  releaseStatus('Live version matches the supplied original. Download the backup, store it securely, then confirm this update. Active state will not change.');
+ }catch(e){releaseStatus('No changes made: '+e.message)}
+ finally{btn.disabled=false}
+};
+$('#n8n-release-backup').onclick=()=>{
+ if(!n8nReleasePlan?.backup)return;
+ downloadReleaseJson('lovespain-live-backup-'+n8nReleasePlan.id+'.json',n8nReleasePlan.backup);
+ n8nReleaseBackupDownloaded=true;$('#n8n-release-saved').disabled=false;
+ releaseStatus('Backup download started. Verify the file is saved securely, then tick the confirmation box.');
+};
+$('#n8n-release-saved').onchange=()=>{$('#n8n-release-apply').disabled=!n8nReleaseBackupDownloaded||!$('#n8n-release-saved').checked};
+$('#n8n-release-apply').onclick=async()=>{
+ const entry=releaseEntry(),plan=n8nReleasePlan;
+ if(!entry||!plan||plan.id!==entry.id||!n8nReleaseBackupDownloaded||!$('#n8n-release-saved').checked)return;
+ if(!window.confirm('Replace LIVE n8n workflow '+entry.workflow.name+' with the approved release candidate? This does not execute the workflow, but future executions will use the new code.'))return;
+ const btn=$('#n8n-release-apply');btn.disabled=true;releaseStatus('Applying approved workflow update to n8n…');
+ try{
+  const r=await api('n8n_deploy_apply',{id:entry.id,original:entry.original,candidate:entry.workflow,adminPassword:$('#n8n-release-password').value,expectedLiveHash:plan.liveFingerprint,expectedVersionId:plan.liveVersionId,backupSaved:true,confirm:'APPLY '+entry.id});
+  releaseStatus('Applied and verified: '+r.name+' · Version '+(r.versionId||'not returned')+'. No workflow executed or activated.');
+  $('#n8n-release-password').value='';resetReleasePlan();
+ }catch(e){releaseStatus('Update not confirmed: '+e.message+' Check live n8n before retrying.')}
+};
+
 async function exportN8nSystemMap(){
  const button=$('#n8n-export-all'),progress=$('#n8n-export-progress');
  if(!n8nWorkflows.length){progress.textContent='No workflows loaded. Run Check connection first.';return}
