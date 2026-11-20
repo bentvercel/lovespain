@@ -222,3 +222,34 @@ test('MCP configuration diagnostics require reviewer session and never return se
   }
  }
 });
+
+test('OAuth progress diagnostics are reviewer-only and never reveal codes or tokens',async()=>{
+ const anon=await request('mcp_oauth_diagnostics',false);
+ assert.equal(anon.status,401);
+ const originalFetch=globalThis.fetch;
+ globalThis.fetch=async(url,options)=>{
+  const u=new URL(url);
+  assert.equal(u.hostname,'example.supabase.co');
+  assert.equal(options.headers.apikey,'test-service-role');
+  assert.equal(u.searchParams.get('limit'),'1');
+  if(u.pathname.endsWith('/ls_mcp_auth_codes')){
+   assert.equal(u.searchParams.get('select'),'created_at,used_at');
+   return {ok:true,status:200,json:async()=>[{created_at:'2026-11-20T10:00:00Z',used_at:null,code_hash:'PRIVATE_CODE_HASH'}]};
+  }
+  if(u.pathname.endsWith('/ls_mcp_tokens')){
+   assert.equal(u.searchParams.get('select'),'created_at');
+   return {ok:true,status:200,json:async()=>[{created_at:'2026-11-20T10:01:00Z',access_hash:'PRIVATE_ACCESS_HASH'}]};
+  }
+  throw Error('Unexpected table');
+ };
+ try{
+  const response=await request('mcp_oauth_diagnostics');
+  assert.equal(response.status,200);
+  assert.deepEqual(response.data,{
+   lastAuthorizationAt:'2026-11-20T10:00:00Z',
+   lastAuthorizationCodeExchanged:false,
+   lastTokenIssuedAt:'2026-11-20T10:01:00Z'
+  });
+  assert.equal(JSON.stringify(response.data).includes('PRIVATE_'),false);
+ }finally{globalThis.fetch=originalFetch;}
+});
