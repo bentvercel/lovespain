@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHmac} from 'node:crypto';
 import handler from './api/index.js';
+import {fingerprint} from './api/n8n-management.js';
 
 process.env.SUPABASE_URL='https://example.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY='test-service-role';
@@ -147,4 +148,12 @@ test('n8n deployment rejects unapproved workflow IDs and arbitrary JSON without 
  const fake={id:'j0sOv1mefGZEduOz',name:'Fake',nodes:[],connections:{},settings:{}};
  const notApproved=await deploymentRequest('n8n_deploy_apply',{id:fake.id,adminPassword:process.env.N8N_DEPLOY_PASSWORD,original:fake,candidate:fake});
  assert.equal(notApproved.status,400);
+});
+
+test('workflow fingerprint ignores JSON property ordering but detects node changes',()=>{
+ const a={name:'Example',nodes:[{id:'1',name:'Node',type:'n8n-nodes-base.code',parameters:{jsCode:'return [];'}}],connections:{},settings:{executionOrder:'v1'}};
+ const b={settings:{executionOrder:'v1'},connections:{},nodes:[{parameters:{jsCode:'return [];'},type:'n8n-nodes-base.code',name:'Node',id:'1'}],name:'Example'};
+ assert.equal(fingerprint(a),fingerprint(b));
+ b.nodes[0].parameters.jsCode='return [1];';
+ assert.notEqual(fingerprint(a),fingerprint(b));
 });
