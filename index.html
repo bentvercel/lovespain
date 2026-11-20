@@ -92,9 +92,78 @@ body[data-view="history"] .queue{display:block}
 @media(max-width:1100px){.layout{grid-template-columns:220px 1fr}.workspace{grid-template-columns:245px 1fr}.overview-grid{grid-template-columns:1fr}.page{padding:25px}.metrics{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:800px){.layout{display:block}aside{position:static;height:auto;padding:15px;overflow:visible}.brand-wrap{padding:0 6px 13px}.sidebar-label,.sidefoot{display:none}aside nav{display:flex;overflow-x:auto;gap:7px;padding:13px 0 0}aside nav button{flex:0 0 auto;white-space:nowrap;padding:9px 12px;font-size:12px}.topbar{padding:13px 17px;min-height:60px}.page{padding:22px 15px}.workspace{grid-template-columns:1fr}.queue{max-height:330px}.heading{align-items:start}.heading h1{font-size:27px}.heading .btn{margin-top:8px}.feature-steps{grid-template-columns:1fr}.topbar .right #reviewer{display:none}}
 @media(max-width:520px){.metrics{grid-template-columns:repeat(2,1fr);gap:9px}.metric{padding:15px}.metric strong{font-size:28px}.overview-grid{grid-template-columns:1fr}.quick-actions{grid-template-columns:1fr}.topbar .right{gap:6px}.topbar .btn{padding:8px 10px}.heading{gap:10px}}
-</style></head><body data-view="overview"><div class="layout">
-<aside>
-  <div class="brand-wrap"><div class="brand">love<i>spain</i>.</div><small>AI MARKETING & GROWTH</small></div>
+
+/* Accessible mobile navigation drawer and touch-friendly content */
+.topbar-start{display:flex;align-items:center;gap:13px;min-width:0}
+.topbar-start .crumb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.menu-toggle,.mobile-close,.sidebar-backdrop{display:none}
+.menu-toggle,.mobile-close{align-items:center;justify-content:center;border:1px solid #dce5f0;background:#fff;color:#1b365c;border-radius:10px;min-width:44px;min-height:44px;flex-shrink:0}
+.menu-toggle:hover,.mobile-close:hover{background:#eaf2ff}
+.hamburger{width:19px;display:grid;gap:4px}
+.hamburger span{height:2px;width:100%;border-radius:2px;background:currentColor;display:block}
+.sidebar-backdrop{border:0}
+@media(max-width:900px){
+ .layout{display:block;min-height:100dvh}
+ aside{position:fixed;top:0;left:0;bottom:0;z-index:102;width:min(310px,86vw);height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;background:var(--navy);padding:22px 16px 28px;display:block;transform:translateX(-105%);visibility:hidden;transition:transform .22s ease,visibility .22s ease;box-shadow:16px 0 50px rgba(9,25,49,.22)}
+ body.menu-open aside{transform:translateX(0);visibility:visible}
+ .sidebar-top{align-items:center}
+ .brand-wrap{padding:0 8px 18px;border-bottom:0}
+ .mobile-close{display:flex;background:#20395c;border-color:#385270;color:#e6eefc;font-size:29px;line-height:1}
+ .mobile-close:hover{background:#2c4c76}
+ .sidebar-label{display:block;margin:20px 12px 8px}
+ aside nav{display:grid;gap:4px;margin:0;padding:0;overflow:visible}
+ aside nav button{width:100%;min-height:46px;white-space:normal;text-align:left;flex:none;padding:12px 13px;font-size:14px}
+ .sidefoot{display:block;position:static;margin-top:24px;padding:18px 12px 0;max-width:none}
+ .menu-toggle{display:flex}
+ .sidebar-backdrop{display:block;position:fixed;inset:0;z-index:101;background:rgba(8,20,39,.55);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility .22s ease}
+ body.menu-open .sidebar-backdrop{opacity:1;visibility:visible;pointer-events:auto}
+ body.menu-open{overflow:hidden}
+ .topbar{position:sticky;top:0;z-index:30;min-height:66px;padding:10px 18px;background:#fff}
+ .topbar .right{gap:8px;flex-shrink:0}
+ .topbar .right>span#reviewer{display:none}
+ .page{padding:23px 18px}
+ .heading{flex-wrap:wrap;align-items:flex-start;gap:12px}
+ .heading .btn{margin:0}
+ .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .workspace,.overview-grid{grid-template-columns:minmax(0,1fr)}
+ .queue{max-height:340px;overflow-y:auto}
+ .campaign{min-height:68px}
+ .actions button,.quick-action{min-height:44px}
+ .feature-steps{grid-template-columns:1fr}
+ .tabs button{min-height:48px}
+}
+@media(max-width:520px){
+ .topbar{padding:9px 12px;gap:7px}
+ .topbar-start{gap:8px}
+ .topbar .right{gap:6px}
+ .topbar .right .avatar{display:none}
+ .topbar .right .btn{padding:9px 11px;min-height:42px}
+ .topbar .right .mode{font-size:9px;padding:4px 6px}
+ .topbar .crumb{font-size:11px}
+ .page{padding:19px 13px}
+ .heading h1{font-size:25px;line-height:1.2}
+ .metrics{gap:10px}
+ .metric{min-width:0;padding:15px}
+ .metric strong{font-size:27px}
+ .metric span{font-size:11px}
+ .panel-head{padding:18px;flex-wrap:wrap}
+ .panel-body,.feature-content{padding:18px}
+ .quick-actions{grid-template-columns:1fr}
+ .detail-head{padding:17px;flex-wrap:wrap;align-items:flex-start}
+ .detail-head .btn{width:100%;min-height:44px}
+ .content,.feedback{padding:17px}
+ .actions{display:grid;grid-template-columns:1fr}
+ .actions button{width:100%}
+ .asset-top{flex-wrap:wrap}
+ .queue-head{padding:17px}
+ .copy{padding:16px;font-size:14px}
+ .media video,.media img{max-height:300px}
+}
+@media(prefers-reduced-motion:reduce){aside,.sidebar-backdrop{transition:none!important}}
+</style></head><body data-view="overview"><button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="Close navigation menu" tabindex="-1"></button><div class="layout">
+<aside id="sidebar" aria-label="LoveSpain navigation">
+  <div class="sidebar-top"><div class="brand-wrap"><div class="brand">love<i>spain</i>.</div><small>AI MARKETING & GROWTH</small></div><button class="mobile-close" id="menu-close" type="button" aria-label="Close menu" title="Close menu">×</button></div>
   <div class="sidebar-label">Workspace</div>
   <nav aria-label="Main navigation">
     <button class="active" data-view="overview"><span class="nav-icon">◫</span>Overview</button>
@@ -118,7 +187,7 @@ body[data-view="history"] .queue{display:block}
   <div class="sidefoot"><strong>One connected workspace</strong><p>Approvals work today. More modules will connect in phases.</p><button class="btn" id="connect" style="margin-top:10px;width:100%">Connect live workspace</button></div>
 </aside>
 <main>
-  <header class="topbar"><div class="crumb">LoveSpain / <b id="breadcrumb">Overview</b></div><div class="right"><span id="reviewer">Demo reviewer</span><span class="mode" id="mode">DEMO</span><div class="avatar" aria-hidden="true">B</div><button class="btn" id="login">Sign in</button></div></header>
+  <header class="topbar"><div class="topbar-start"><button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="sidebar" aria-expanded="false"><span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span></button><div class="crumb">LoveSpain / <b id="breadcrumb">Overview</b></div></div><div class="right"><span id="reviewer">Demo reviewer</span><span class="mode" id="mode">DEMO</span><div class="avatar" aria-hidden="true">B</div><button class="btn" id="login">Sign in</button></div></header>
   <div class="page">
     <div class="heading"><div><div class="eyebrow" id="section-label">YOUR BUSINESS AT A GLANCE</div><h1 id="page-title">Good to see you, Bent.</h1><p id="page-subtitle">Your LoveSpain marketing workspace, all in one place.</p></div><button class="btn" id="refresh">↻ Refresh data</button></div>
     <div class="notice" id="notice">Demo workspace · Sample content only. Decisions are saved in this browser and do not approve or publish live campaigns.</div>
@@ -170,10 +239,10 @@ function syncView(){
  const info=sections[view]||sections.overview;
  document.body.dataset.view=view;
  $('#breadcrumb').textContent=info[0];$('#section-label').textContent=info[1];$('#page-title').textContent=info[2];$('#page-subtitle').textContent=info[3];
- document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+ document.querySelectorAll('[data-view]').forEach(b=>{const active=b.dataset.view===view;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
  if(modules[view]){$('#feature-title').textContent=modules[view][0];$('#feature-description').textContent=info[3];$('#feature-detail').textContent=modules[view][1];}
 }
-function navigate(next){view=next;syncView();render();window.scrollTo({top:0,behavior:'smooth'});}
+function navigate(next){view=next;syncView();render();closeMobileMenu(false);window.scrollTo({top:0,behavior:'smooth'});}
 function renderOverview(){
  const recent=[...rows].sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0)).slice(0,5);
  $('#recent-campaigns').innerHTML=recent.map(c=>'<button class="overview-row" data-campaign="'+esc(c.id)+'"><span><strong>'+esc(c.name)+'</strong><small>'+esc(c.assets.length)+' assets · Version '+esc(c.revision)+'</small></span><span class="badge '+esc(status(c))+'">'+esc(label(status(c)))+'</span></button>').join('')||'<div class="overview-empty">No campaigns yet. New n8n submissions will appear here.</div>';
@@ -189,5 +258,34 @@ content='<div class="tabs" role="tablist">'+c.assets.map(x=>'<button role="tab" 
 $('#detail').innerHTML='<div class="detail-head"><div><h2>'+esc(c.name)+'</h2><p>Campaign '+esc(c.id)+' · Version '+c.revision+'</p></div><button class="btn primary" id="approve-all" '+(busy?'disabled':'')+'>Approve all assets</button></div>'+content;document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render()});document.querySelectorAll('[data-decision]').forEach(b=>b.onclick=()=>decide(c,a.id,b.dataset.decision));$('#approve-all').onclick=()=>{if(confirm('Approve every asset in this campaign version? Make sure you have reviewed each item.'))decide(c,'all','approved')};}
 async function decide(c,assetId,s){if(busy)return;const note=$('#note')?.value.trim()||'';if(s!=='approved'&&!note){toast('Please add a reason for the team.');return}busy=true;try{if(demo){const at=new Date().toISOString();c.assets.forEach(a=>{if(assetId==='all'||a.id===assetId){a.status=s;a.note=note;a.decidedAt=at;a.reviewer='Demo reviewer'}});c.history.push({at,actor:'Demo reviewer',action:s,assetId,note});c.revision++;localStorage.setItem('ls-approval-demo-v1',JSON.stringify(rows));toast('Demo decision saved in this browser. Nothing published.')}else{const r=await api('decision',{id:c.id,revision:c.revision,assetId,status:s,note});rows=rows.map(x=>x.id===c.id?r.campaign:x);toast('Decision saved. Publishing remains a separate workflow.')}render()}catch(e){toast(e.message)}finally{busy=false}}
 async function load(){try{const r=await api('list');demo=false;csrf=r.csrf;rows=r.campaigns;selected=rows.some(c=>c.id===selected)?selected:rows[0]?.id;$('#mode').textContent='LIVE';$('#reviewer').textContent=r.reviewer;$('#notice').textContent='Live review workspace · Decisions are recorded against the exact content version. Publishing runs separately through your verified workflow.';$('#login').textContent='Sign out';render()}catch(e){toast(e.message)}}
+
+function openMobileMenu(){
+ if(!window.matchMedia('(max-width:900px)').matches)return;
+ document.body.classList.add('menu-open');
+ $('#menu-toggle').setAttribute('aria-expanded','true');
+ $('#menu-toggle').setAttribute('aria-label','Close navigation menu');
+ $('#menu-close').focus();
+}
+function closeMobileMenu(restoreFocus=true){
+ const wasOpen=document.body.classList.contains('menu-open');
+ document.body.classList.remove('menu-open');
+ $('#menu-toggle').setAttribute('aria-expanded','false');
+ $('#menu-toggle').setAttribute('aria-label','Open navigation menu');
+ if(wasOpen&&restoreFocus&&window.matchMedia('(max-width:900px)').matches)$('#menu-toggle').focus();
+}
+$('#menu-toggle').onclick=()=>document.body.classList.contains('menu-open')?closeMobileMenu():openMobileMenu();
+$('#menu-close').onclick=()=>closeMobileMenu();
+$('#sidebar-backdrop').onclick=()=>closeMobileMenu();
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&document.body.classList.contains('menu-open')){e.preventDefault();closeMobileMenu();}
+ if(e.key!=='Tab'||!document.body.classList.contains('menu-open'))return;
+ const els=[...$('#sidebar').querySelectorAll('button:not(:disabled),a[href]')].filter(el=>el.getClientRects().length);
+ if(!els.length)return;
+ const first=els[0],last=els[els.length-1];
+ if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+ else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+});
+window.addEventListener('resize',()=>{if(window.innerWidth>900)closeMobileMenu(false)});
+
 $('#search').oninput=render;$('#filter').onchange=render;$('#refresh').onclick=()=>demo?render():load();$('#login').onclick=async()=>{if(!demo){await api('logout',{});location.reload()}else $('#auth').showModal()};$('#connect').onclick=()=>$('#auth').showModal();$('#cancel').onclick=()=>$('#auth').close();$('#authform').onsubmit=async e=>{e.preventDefault();try{await api('login',{password:$('#password').value});$('#password').value='';$('#auth').close();await load()}catch(e){$('#autherror').textContent=e.message}};document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>navigate(b.dataset.view));document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>navigate(b.dataset.go));$('#open-approvals').onclick=()=>navigate('review');$('#feature-approvals').onclick=()=>navigate('review');render();fetch('/api/index?action=list').then(r=>{if(r.ok)load()}).catch(()=>{});
 </script></body></html>
