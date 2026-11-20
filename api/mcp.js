@@ -33,7 +33,14 @@ const getClient=id=>{const c=unpack(id);return c?.kind==='mcp-client'&&c.exp>Dat
 const base64url=s=>Buffer.from(s).toString('base64url');
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const reqBody=req=>{if(typeof req.body==='string'){try{return JSON.parse(req.body)}catch{return Object.fromEntries(new URLSearchParams(req.body))}}return req.body||{};};
-const formBody=req=>{if(typeof req.body==='string')return Object.fromEntries(new URLSearchParams(req.body));return req.body||{};};
+// Vercel runtimes can expose form posts as a string, Buffer, or parsed object.
+const formBody=req=>{
+ const body=req.body;
+ if(Buffer.isBuffer(body))return Object.fromEntries(new URLSearchParams(body.toString('utf8')));
+ if(typeof body==='string')return Object.fromEntries(new URLSearchParams(body));
+ if(body instanceof URLSearchParams)return Object.fromEntries(body);
+ return body&&typeof body==='object'?body:{};
+};
 async function store(table,query='',method='GET',body){
  const url=process.env.SUPABASE_URL+'/rest/v1/'+table+(query?'?'+query:'');
  const response=await fetch(url,{method,headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+process.env.SUPABASE_SERVICE_ROLE_KEY,'Content-Type':'application/json',Prefer:'return=representation'},body:body===undefined?undefined:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(15000)});
@@ -41,6 +48,20 @@ async function store(table,query='',method='GET',body){
  return response.status===204?[]:response.json();
 }
 const q=s=>encodeURIComponent(s);
+// Only authenticated dashboard reviewers can request these timestamps.
+// Never return OAuth codes, client IDs, hashes, passwords, or token values.
+export async function mcpOAuthStatus(){
+ const [codes,tokens]=await Promise.all([
+  store('ls_mcp_auth_codes','select=created_at,used_at&order=created_at.desc&limit=1'),
+  store('ls_mcp_tokens','select=created_at&order=created_at.desc&limit=1')
+ ]);
+ return {
+  lastAuthorizationAt:codes[0]?.created_at||null,
+  lastAuthorizationCodeExchanged:codes[0]?.used_at!=null,
+  lastTokenIssuedAt:tokens[0]?.created_at||null
+ };
+}
+
 async function audit(action,workflowId,changeSetId,details={}){
  await store('ls_n8n_admin_audit','','POST',{action,workflow_id:workflowId||null,change_set_id:changeSetId||null,details});
 }
