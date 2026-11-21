@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
-    "test": "node --test tests.mjs mcp-tests.mjs oauth-server-tests.mjs"
+    "test": "node --test tests.mjs mcp-tests.mjs oauth-server-tests.mjs ghl-mcp-tests.mjs"
   },
   "engines": {
     "node": ">=22"
