@@ -116,7 +116,7 @@ async function tool(name,args){
 export default async function handler(req,res){
  try{
   const o=origin(),mode=new URL(req.url,'http://local').searchParams.get('mode');
-  if(!o||secret().length<32||!(process.env.GHL_ADMIN_PASSWORD||'').length||!process.env.GHL_API_TOKEN||!process.env.GHL_LOCATION_ID||!process.env.SUPABASE_URL||!process.env.SUPABASE_SERVICE_ROLE_KEY)return send(res,503,{error:'GHL Manager is not configured'});
+  if(!o||secret().length<32||(process.env.GHL_ADMIN_PASSWORD||'').length<20||!process.env.GHL_API_TOKEN||!process.env.GHL_LOCATION_ID||!process.env.SUPABASE_URL||!process.env.SUPABASE_SERVICE_ROLE_KEY)return send(res,503,{error:'GHL Manager is not configured'});
   if(mode==='oauth_metadata'&&req.method==='GET')return send(res,200,meta(o));
   if(mode==='protected_metadata'&&req.method==='GET')return send(res,200,protectedMeta(o));
   if(['register','authorize','token'].includes(mode))return oauth(req,res,mode,o);
