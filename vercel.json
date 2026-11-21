@@ -20,6 +20,14 @@
   ],
   "rewrites": [
     {
+      "source": "/.well-known/oauth-authorization-server/ghl",
+      "destination": "/api/ghl-mcp?mode=oauth_metadata"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource/api/ghl-mcp",
+      "destination": "/api/ghl-mcp?mode=protected_metadata"
+    },
+    {
       "source": "/.well-known/oauth-authorization-server",
       "destination": "/api/mcp?mode=oauth_metadata"
     },
