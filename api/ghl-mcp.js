@@ -26,8 +26,8 @@ async function authorized(req){
  const rows=await db('ls_mcp_tokens','select=client_id,expires_at,revoked_at&access_hash=eq.'+q(sha(token))+'&limit=1');
  return rows.length===1&&!rows[0].revoked_at&&Date.parse(rows[0].expires_at)>Date.now()&&!!client(rows[0].client_id);
 }
-const meta=o=>({issuer:o,authorization_endpoint:o+'/api/ghl-mcp?mode=authorize',token_endpoint:o+'/api/ghl-mcp?mode=token',registration_endpoint:o+'/api/ghl-mcp?mode=register',response_types_supported:['code'],grant_types_supported:['authorization_code','refresh_token'],token_endpoint_auth_methods_supported:['none'],code_challenge_methods_supported:['S256'],scopes_supported:['ghl:read']});
-const protectedMeta=o=>({resource:o+'/api/ghl-mcp',authorization_servers:[o],scopes_supported:['ghl:read'],bearer_methods_supported:['header']});
+const meta=o=>({issuer:o+'/ghl',authorization_endpoint:o+'/api/ghl-mcp?mode=authorize',token_endpoint:o+'/api/ghl-mcp?mode=token',registration_endpoint:o+'/api/ghl-mcp?mode=register',response_types_supported:['code'],grant_types_supported:['authorization_code','refresh_token'],token_endpoint_auth_methods_supported:['none'],code_challenge_methods_supported:['S256'],scopes_supported:['ghl:read']});
+const protectedMeta=o=>({resource:o+'/api/ghl-mcp',authorization_servers:[o+'/ghl'],scopes_supported:['ghl:read'],bearer_methods_supported:['header']});
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function oauth(req,res,mode,o){
  if(mode==='register'&&req.method==='POST'){
