@@ -1,6 +1,7 @@
 import {createHmac,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
 import {manageN8n} from './n8n-management.js';
 import mcpHandler, {mcpConfigurationStatus,mcpOAuthStatus} from './mcp.js';
+import ghlMcpHandler from './ghl-mcp.js';
 const equal=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.length===b.length&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
 const sign=s=>createHmac('sha256',process.env.SESSION_SECRET).update(s).digest('hex');
 const send=(res,status,body)=>{res.statusCode=status;res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify(body));};
@@ -33,6 +34,9 @@ try{
 // Some Vercel configurations route /api/mcp and OAuth discovery to the dashboard
 // entrypoint. Dispatch before reviewer session checks; MCP applies its own OAuth.
 const route=new URL(req.url,'http://local');
+if(route.pathname==='/api/ghl-mcp')return ghlMcpHandler(req,res);
+if(route.pathname==='/.well-known/oauth-authorization-server/ghl'){req.url='/api/ghl-mcp?mode=oauth_metadata';return ghlMcpHandler(req,res);}
+if(route.pathname==='/.well-known/oauth-protected-resource/api/ghl-mcp'){req.url='/api/ghl-mcp?mode=protected_metadata';return ghlMcpHandler(req,res);}
 const discovery=route.pathname==='/.well-known/oauth-authorization-server'?'oauth_metadata':
   (route.pathname==='/.well-known/oauth-protected-resource'||route.pathname==='/.well-known/oauth-protected-resource/api/mcp')?'protected_metadata':null;
 if(discovery){
